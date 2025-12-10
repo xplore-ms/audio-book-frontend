@@ -1,4 +1,3 @@
-import React from 'react';
 import { UploadIcon, FileIcon, CheckCircleIcon, MailIcon } from './Icons';
 
 export default function HowItWorks() {
