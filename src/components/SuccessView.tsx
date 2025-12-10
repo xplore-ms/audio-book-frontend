@@ -1,4 +1,3 @@
-import React from 'react';
 import { CheckCircleIcon, MailIcon } from './Icons';
 
 interface SuccessViewProps {
