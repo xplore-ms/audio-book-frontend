@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="512" height="512" viewBox="0 0 1024 1024" role="img" aria-label="Shield icon">
+  <!-- Outer solid shield (white) -->
+  <path fill="#ffffff" d="
+    M512 120
+    C700 120 872 232 872 384
+    V472
+    C872 640 700 792 512 920
+    C324 792 152 640 152 472
+    V384
+    C152 232 324 120 512 120
+    Z"/>
+
+  <!-- Inner hole / shield field (transparent background shows here) -->
+  <path fill="transparent" d="
+    M512 200
+    C662 200 792 280 792 360
+    V432
+    C792 576 662 696 512 820
+    C362 696 232 576 232 432
+    V360
+    C232 280 362 200 512 200
+    Z"/>
+
+  <!-- White crescent / leaf inside the shield -->
+  <path fill="#ffffff" d="
+    M570 300
+    C640 300 720 360 720 460
+    C720 560 630 660 582 710
+    C600 640 612 580 596 520
+    C580 460 540 420 480 388
+    C542 380 560 300 570 300
+    Z"/>
+
+  <!-- Smoothing element at top of crescent (transparent overlap) -->
+  <path fill="transparent" d="
+    M565 332
+    C605 332 640 364 648 412
+    C638 380 610 354 565 354
+    C530 354 500 366 468 384
+    C506 360 536 332 565 332
+    Z" opacity="1"/>
+</svg>
