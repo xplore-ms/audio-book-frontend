@@ -12,7 +12,7 @@ export interface StartJobResponse {
 }
 
 export interface TaskStatusResponse {
-  state: 'PENDING' | 'STARTED' | 'RETRY' | 'FAILURE' | 'SUCCESS';
+  state: 'PENDING' | 'STARTED' | 'PROGRESS' | 'RETRY' | 'FAILURE' | 'SUCCESS';
   result?: any;
 }
 

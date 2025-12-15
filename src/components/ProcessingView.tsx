@@ -15,55 +15,66 @@ export default function ProcessingView({
   onComplete,
   onError,
 }: ProcessingViewProps) {
-  const [completedCount, setCompletedCount] = useState(0);
+  const [overallProgress, setOverallProgress] = useState(0);
   const [phase, setPhase] = useState<"PROCESS" | "MERGE">("PROCESS");
-  const tasksStatusRef = useRef<Record<string, boolean>>({});
+
+  // Stores per-task progress (0–100)
+  const tasksProgressRef = useRef<Record<string, number>>({});
 
   const totalTasks = taskIds.length;
-  const percent = Math.round((completedCount / totalTasks) * 100);
+  const percent = Math.round(overallProgress);
 
   //______________________________________________________________
-  // POLLING FOR PAGE PROCESSING
+  // POLLING FOR PAGE PROCESSING (REAL-TIME)
   //______________________________________________________________
   useEffect(() => {
-    // Initialize all tasks as incomplete
+    // Initialize progress for all tasks
     taskIds.forEach((tid) => {
-      if (!(tid in tasksStatusRef.current)) {
-        tasksStatusRef.current[tid] = false;
+      if (!(tid in tasksProgressRef.current)) {
+        tasksProgressRef.current[tid] = 0;
       }
     });
 
     const interval = setInterval(async () => {
-      const pending = taskIds.filter((id) => !tasksStatusRef.current[id]);
+      try {
+        await Promise.all(
+          taskIds.map(async (tid) => {
+            // Skip finished tasks
+            if (tasksProgressRef.current[tid] === 100) return;
 
-      // All done → Start merge phase
-      if (pending.length === 0) {
-        clearInterval(interval);
-        startMerge();
-        return;
-      }
-
-      // Poll each pending task
-      await Promise.all(
-        pending.map(async (tid) => {
-          try {
             const status = await getStatus(tid);
 
-            if (status.state === "SUCCESS") {
-              tasksStatusRef.current[tid] = true;
-            } else if (status.state === "FAILURE") {
-              console.warn("Task failed:", tid);
-              tasksStatusRef.current[tid] = true; // mark done to skip
+            if (status.state === "PROGRESS") {
+              tasksProgressRef.current[tid] =
+                status.result?.percent ?? 0;
             }
-          } catch (err) {
-            console.error("Polling error:", err);
-          }
-        })
-      );
 
-      // Update UI count
-      const done = Object.values(tasksStatusRef.current).filter(Boolean).length;
-      setCompletedCount(done);
+            if (status.state === "SUCCESS") {
+              tasksProgressRef.current[tid] = 100;
+            }
+
+            if (status.state === "FAILURE") {
+              console.warn("Task failed:", tid);
+              tasksProgressRef.current[tid] = 100;
+            }
+          })
+        );
+
+        // Compute average progress across all pages
+        const values = Object.values(tasksProgressRef.current);
+        const avg =
+          values.reduce((sum, v) => sum + v, 0) / values.length;
+
+        setOverallProgress(avg);
+
+        // All pages finished → merge
+        if (values.every((v) => v === 100)) {
+          clearInterval(interval);
+          startMerge();
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
     }, 2000);
 
     return () => clearInterval(interval);
@@ -78,7 +89,7 @@ export default function ProcessingView({
     try {
       await mergeJob(jobId);
 
-      // Wait 1 second for user-friendly smooth transition
+      // Small delay for smooth UX
       setTimeout(() => {
         onComplete();
       }, 1000);
@@ -118,10 +129,12 @@ export default function ProcessingView({
         <div className="h-2 bg-indigo-100 rounded overflow-hidden">
           <div
             className={`h-full transition-all duration-700 ${
-              phase === "MERGE" ? "bg-indigo-600 animate-pulse" : "bg-indigo-500"
+              phase === "MERGE"
+                ? "bg-indigo-600 animate-pulse"
+                : "bg-indigo-500"
             }`}
             style={{ width: phase === "PROCESS" ? `${percent}%` : "100%" }}
-          ></div>
+          />
         </div>
       </div>
 
@@ -131,11 +144,11 @@ export default function ProcessingView({
 
         {phase === "PROCESS" ? (
           <span>
-            Processed{" "}
+            Processing{" "}
             <span className="font-semibold text-indigo-700">
-              {completedCount}/{totalTasks}
+              {totalTasks}
             </span>{" "}
-            pages
+            pages…
           </span>
         ) : (
           <span className="font-medium text-indigo-700">
