@@ -22,6 +22,7 @@ export default function ListenView() {
 
   // Construct the stream URL directly
   const streamUrl = `${API_BASE_URL}/api/audio/stream?token=${token}`;
+  const downloadUrl = `${API_BASE_URL}/api/audio/download?token=${token}`;
 
   return (
     <div className="max-w-2xl mx-auto animate-fade-in-down w-full">
@@ -61,6 +62,16 @@ export default function ListenView() {
           </div>
         )}
         
+        <div className="mt-8 text-center">
+           <a
+              href={downloadUrl}
+              className="inline-flex items-center justify-center px-6 py-3 mt-6
+                        bg-indigo-600 text-white font-semibold rounded-xl
+                        hover:bg-indigo-700 transition-colors"
+            >
+              Download Audiobook
+            </a>
+        </div>
         <div className="mt-8 text-center">
            <p className="text-slate-500 text-sm mb-6">
              You can use the three dots (⋮) in the player above to download the file.
