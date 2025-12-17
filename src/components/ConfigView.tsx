@@ -5,11 +5,13 @@ interface ConfigViewProps {
   numPages: number;
   onConfirm: (startPage: number) => void;
   isLoading: boolean;
+  initialStartPage?: number;
 }
 
-export default function ConfigView({ numPages, onConfirm, isLoading }: ConfigViewProps) {
+export default function ConfigView({ numPages, onConfirm, isLoading, initialStartPage = 1 }: ConfigViewProps) {
   // Allow string state to support empty input during typing
-  const [startPage, setStartPage] = useState<number | string>(1);
+  // Use initialStartPage prop, default to 1 if not provided
+  const [startPage, setStartPage] = useState<number | string>(initialStartPage);
   const MAX_PAGES = 4;
 
   // Resolve current value to a valid number for display logic

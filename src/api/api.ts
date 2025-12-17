@@ -1,10 +1,12 @@
 import axios from 'axios';
 import type { UploadResponse, StartJobResponse, TaskStatusResponse, MergeResponse } from '../types';
 
+export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://audio-book-elji.onrender.com';
+
 const api = axios.create({
-  // Fix: Cast import.meta to any to avoid "Property 'env' does not exist on type 'ImportMeta'" error
-  baseURL: (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000'
+  baseURL: API_BASE_URL
 });
+
 
 export async function uploadPdf(file: File, email: string): Promise<UploadResponse> {
   const form = new FormData();
