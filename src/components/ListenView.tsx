@@ -4,7 +4,6 @@ import { API_BASE_URL } from '../api/api';
 import { FileIcon } from './Icons';
 
 export default function ListenView() {
-  const [downloading, setDownloading] = useState(false);
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [error, setError] = useState<string | null>(null);
@@ -21,32 +20,16 @@ export default function ListenView() {
     );
   }
 
-  const handleDownload = async () => {
-  try {
-    setDownloading(true);
-
-    const response = await fetch(downloadUrl);
-    if (!response.ok) {
-      throw new Error("Download failed");
-    }
-
-    const blob = await response.blob();
-
-    const url = window.URL.createObjectURL(blob);
+  const handleDownload = () => {
     const a = document.createElement("a");
-    a.href = url;
-    a.download = "audiobook.wav";
+    a.href = downloadUrl;
+    a.download = "audiobook.wav"; // optional, backend already sets it
+    a.style.display = "none";
+
     document.body.appendChild(a);
     a.click();
-
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    setError("Failed to download audio. The link may have expired.");
-  } finally {
-    setDownloading(false);
-  }
-};
+    document.body.removeChild(a);
+  };
 
 
   // Construct the stream URL directly
@@ -94,13 +77,12 @@ export default function ListenView() {
         <div className="mt-8 text-center">
            <button
             onClick={handleDownload}
-            disabled={downloading}
             className="inline-flex items-center justify-center px-6 py-3 mt-6
                       bg-indigo-600 text-white font-semibold rounded-xl
                       hover:bg-indigo-700 transition-colors
                       disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {downloading ? "Downloading..." : "Download Audiobook"}
+            Download Audiobook
           </button>
 
         </div>
