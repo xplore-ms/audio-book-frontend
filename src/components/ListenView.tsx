@@ -5,98 +5,96 @@ import { FileIcon } from './Icons';
 
 export default function ListenView() {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+  const jobId = searchParams.get('job_id');
   const [error, setError] = useState<string | null>(null);
 
-  if (!token) {
+  // Pull token from local storage if not in URL
+  const token = searchParams.get('token') || localStorage.getItem('narrio_token');
+
+  if (!jobId || !token) {
     return (
       <div className="text-center p-12">
         <div className="bg-red-50 text-red-700 p-4 rounded-lg inline-block mb-4">
-          Invalid Link
+          Invalid or Expired Link
         </div>
-        <p className="mb-4">No access token provided.</p>
-        <Link to="/" className="text-indigo-600 hover:underline">Go Home</Link>
+        <p className="mb-4 text-slate-500">Please access your audio via My Library or your email link.</p>
+        <Link to="/" className="text-indigo-600 hover:underline font-bold">Go Home</Link>
       </div>
     );
   }
 
+  // Corrected URLs to match @router.get("/stream/{job_id}") with prefix="/audio"
+  const streamUrl = `${API_BASE_URL}/audio/stream/${jobId}?token=${token}`;
+  const downloadUrl = `${API_BASE_URL}/audio/download/${jobId}?token=${token}`;
+
   const handleDownload = () => {
     const a = document.createElement("a");
     a.href = downloadUrl;
-    a.download = "audiobook.wav"; // optional, backend already sets it
+    a.download = `audiobook-${jobId.slice(0, 6)}.wav`;
     a.style.display = "none";
-
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   };
 
-
-  // Construct the stream URL directly
-  const streamUrl = `${API_BASE_URL}/api/audio/stream?token=${token}`;
-  const downloadUrl = `${API_BASE_URL}/api/audio/download?token=${token}`;
-
   return (
-    <div className="max-w-2xl mx-auto animate-fade-in-down w-full">
+    <div className="max-w-2xl mx-auto animate-fade-in-down w-full px-4">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-extrabold text-slate-900 mb-4">Your Audiobook</h1>
-        <p className="text-lg text-slate-600">
-          Ready to listen. Stream it now or download it using the player controls.
+        <h1 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">Your Audiobook</h1>
+        <p className="text-lg text-slate-500">
+          Ready to listen. Stream it now or download for offline access.
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
-        <div className="flex items-center gap-4 mb-8 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-          <div className="bg-white p-3 rounded-lg shadow-sm">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 md:p-12 border border-slate-100">
+        <div className="flex items-center gap-6 mb-10 p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
+          <div className="bg-white p-4 rounded-2xl shadow-sm">
             <FileIcon className="w-8 h-8 text-indigo-600" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-indigo-900 uppercase tracking-wide">Audiobook Ready</h3>
-            <p className="text-slate-600 text-sm">Generated via AudioPDF</p>
+            <h3 className="text-xs font-black text-indigo-900 uppercase tracking-[0.2em] mb-1">Narration Ready</h3>
+            <p className="text-slate-600 font-bold">Session ID: {jobId.slice(0, 8)}</p>
           </div>
         </div>
 
-        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+        <div className="bg-slate-900 p-8 rounded-[2rem] border-4 border-slate-800 shadow-inner group">
           <audio 
             controls 
             autoPlay 
-            className="w-full h-12 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg"
+            crossOrigin="anonymous"
+            className="w-full h-12 focus:outline-none rounded-lg"
             src={streamUrl}
-            onError={() => setError("Failed to load audio. The link may have expired.")}
+            onError={() => setError("Failed to load audio. The server might be waking up or the link expired.")}
           >
             Your browser does not support the audio element.
           </audio>
         </div>
 
         {error && (
-          <div className="mt-4 text-center text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-100">
+          <div className="mt-6 text-center text-red-600 text-sm bg-red-50 p-4 rounded-2xl border border-red-100 animate-shake">
             {error}
           </div>
         )}
         
-        <div className="mt-8 text-center">
+        <div className="mt-10 flex flex-col gap-4">
            <button
             onClick={handleDownload}
-            className="inline-flex items-center justify-center px-6 py-3 mt-6
-                      bg-indigo-600 text-white font-semibold rounded-xl
-                      hover:bg-indigo-700 transition-colors
-                      disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-5 bg-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-1 transition-all active:scale-95"
           >
-            Download Audiobook
+            Download High Quality WAV
           </button>
 
-        </div>
-        <div className="mt-8 text-center">
-           <p className="text-slate-500 text-sm mb-6">
-             You can use the three dots (⋮) in the player above to download the file.
-           </p>
-           <Link 
-             to="/" 
-             className="inline-flex items-center justify-center px-6 py-3 border border-slate-200 text-base font-medium rounded-xl text-slate-600 bg-white hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+          <Link 
+             to="/my-library" 
+             className="w-full py-5 border-2 border-slate-100 text-slate-500 font-black uppercase tracking-widest rounded-2xl text-center hover:bg-slate-50 transition-all"
            >
-             Convert Another PDF
+             Go to My Library
            </Link>
         </div>
+
+        <p className="mt-8 text-center text-slate-400 text-xs font-medium px-4">
+          Tip: For the best experience, use the interactive player in My Library to see the text highlighted as you listen.
+        </p>
       </div>
     </div>
   );

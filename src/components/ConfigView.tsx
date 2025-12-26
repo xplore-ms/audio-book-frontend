@@ -1,127 +1,115 @@
 import React, { useState } from 'react';
 import { FileIcon } from './Icons';
+import { useUser } from '../context/UserContext';
 
 interface ConfigViewProps {
   numPages: number;
-  onConfirm: (startPage: number) => void;
+  onConfirm: (startPage: number, isFull: boolean) => void;
   isLoading: boolean;
   initialStartPage?: number;
 }
 
 export default function ConfigView({ numPages, onConfirm, isLoading, initialStartPage = 1 }: ConfigViewProps) {
-  // Allow string state to support empty input during typing
-  // Use initialStartPage prop, default to 1 if not provided
   const [startPage, setStartPage] = useState<number | string>(initialStartPage);
-  const MAX_PAGES = 4;
+  const [isFullReview, setIsFullReview] = useState(false);
+  const { user } = useUser();
+  const MAX_FREE_PAGES = 4;
 
-  // Resolve current value to a valid number for display logic
   const numericVal = typeof startPage === 'string' ? (parseInt(startPage) || 0) : startPage;
-  // Clamp for calculation purposes (e.g. endPage display)
-  // If user types 0 or empty, we default to 1 for the preview
   const effectiveStart = numericVal < 1 ? 1 : Math.min(numericVal, numPages);
 
-  // Calculate end page: Start + 3 (e.g., 1+3=4, range 1,2,3,4)
-  // But clamped to numPages
-  const endPage = Math.min(effectiveStart + MAX_PAGES - 1, numPages);
+  const endPage = isFullReview ? numPages : Math.min(effectiveStart + MAX_FREE_PAGES - 1, numPages);
   const pageCount = endPage - effectiveStart + 1;
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    
-    // Allow clearing the input
-    if (val === '') {
-      setStartPage('');
-      return;
-    }
-
-    // Parse and set if number
-    const parsed = parseInt(val);
-    if (!isNaN(parsed)) {
-      setStartPage(parsed);
-    }
-  };
-
-  const handleBlur = () => {
-    // On blur, validate and clamp the value within bounds
-    let val = typeof startPage === 'string' ? parseInt(startPage) : startPage;
-    
-    if (isNaN(val) || val < 1) {
-      val = 1;
-    } else if (val > numPages) {
-      val = numPages;
-    }
-    setStartPage(val);
-  };
+  const creditCost = isFullReview ? pageCount : 1;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onConfirm(effectiveStart);
+    if (user && user.credits < creditCost) {
+      alert("Insufficient credits. Please top up in the store.");
+      return;
+    }
+    onConfirm(effectiveStart, isFullReview);
   };
 
   return (
     <div className="max-w-xl w-full mx-auto bg-white rounded-2xl shadow-xl p-8 border border-slate-100 animate-fade-in-up">
-      {/* Header info about the file */}
       <div className="flex items-center gap-4 mb-8 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
         <div className="bg-white p-3 rounded-lg shadow-sm">
           <FileIcon className="w-8 h-8 text-indigo-600" />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-bold text-indigo-900 uppercase tracking-wide">PDF Analysis Complete</h3>
-          <p className="text-slate-600">Found <span className="font-bold text-slate-900">{numPages}</span> pages in your document.</p>
+          <h3 className="text-sm font-bold text-indigo-900 uppercase tracking-wide">Document Loaded</h3>
+          <p className="text-slate-600"><span className="font-bold text-slate-900">{numPages}</span> total pages.</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="mb-8">
-          <label htmlFor="startPage" className="block text-lg font-medium text-slate-900 mb-2">
-            Which page should we start reading from?
-          </label>
-          <p className="text-slate-500 mb-6 text-sm">
-            Due to high demand, the free plan processes up to <span className="font-bold text-indigo-600">{MAX_PAGES} pages</span> at a time.
-          </p>
+      <div className="flex gap-2 p-1 bg-slate-100 rounded-xl mb-8">
+        <button 
+          type="button"
+          onClick={() => setIsFullReview(false)}
+          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isFullReview ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          Standard (4 Pages)
+        </button>
+        <button 
+          type="button"
+          onClick={() => setIsFullReview(true)}
+          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isFullReview ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          Full Review (Manual)
+        </button>
+      </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 justify-center bg-slate-50 p-6 rounded-xl border border-slate-100">
-            <div className="relative">
-              <input
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {!isFullReview ? (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-4">Reading Range</label>
+            <div className="flex items-center gap-4 bg-slate-50 p-6 rounded-xl border border-slate-100">
+               <input
                 type="number"
-                id="startPage"
-                min={1}
-                max={numPages}
                 value={startPage}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className="block w-32 text-center text-3xl font-bold rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-2 px-2 text-indigo-600 bg-white border"
+                onChange={e => setStartPage(e.target.value)}
+                className="w-20 text-center text-2xl font-bold rounded-lg border-slate-300 py-2 text-indigo-600 outline-none focus:ring-2 focus:ring-indigo-500"
               />
-              <span className="block text-center mt-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Start Page</span>
-            </div>
-
-            <div className="text-slate-400 font-medium">➔</div>
-
-            <div className="relative">
-               <div className="flex items-center justify-center w-32 h-[62px] text-center text-3xl font-bold rounded-lg border-slate-200 bg-slate-100 text-slate-500 border cursor-not-allowed">
-                 {endPage}
-               </div>
-               <span className="block text-center mt-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">End Page</span>
+              <span className="text-slate-400 font-bold">➔</span>
+              <div className="w-20 h-[52px] flex items-center justify-center text-2xl font-bold bg-slate-200 rounded-lg text-slate-500">
+                {endPage}
+              </div>
             </div>
           </div>
-          
-          <div className="mt-4 text-center text-sm text-slate-600">
-            Converting <span className="font-bold">{pageCount}</span> page{pageCount !== 1 ? 's' : ''}.
+        ) : (
+          <div className="p-6 bg-amber-50 border border-amber-100 rounded-xl space-y-4">
+             <div className="flex gap-3">
+               <div className="flex-shrink-0 w-6 h-6 text-amber-600">
+                  <svg fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
+               </div>
+               <div className="text-sm text-amber-900 leading-relaxed font-medium">
+                 <p className="font-bold mb-1 uppercase tracking-tight">Manual Processing Required</p>
+                 Please ensure you have enough credits ({numPages} credits for this file) before the process. Your document will be manually processed.
+               </div>
+             </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between p-4 bg-slate-900 text-white rounded-xl">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-slate-400">Total Cost</p>
+            <p className="text-xl font-bold">{creditCost} Credits</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-widest text-slate-400">Your Balance</p>
+            <p className={`text-xl font-bold ${user && user.credits < creditCost ? 'text-red-400' : 'text-green-400'}`}>
+              {user?.credits || 0}
+            </p>
           </div>
         </div>
 
         <button
           type="submit"
           disabled={isLoading}
-          className={`
-            w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-lg font-medium text-white 
-            transition-all duration-200
-            ${isLoading 
-              ? 'bg-indigo-300 cursor-not-allowed' 
-              : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-0.5'}
-          `}
+          className={`w-full flex justify-center py-4 rounded-xl shadow-lg font-black uppercase tracking-widest transition-transform active:scale-95 ${isFullReview ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white disabled:opacity-50 disabled:cursor-not-allowed`}
         >
-          {isLoading ? 'Starting Conversion...' : 'Start Conversion'}
+          {isLoading ? 'Processing Request...' : isFullReview ? 'Request Full Review' : 'Start Conversion'}
         </button>
       </form>
     </div>
