@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { UploadIcon, FileIcon, CheckCircleIcon, MailIcon } from './Icons';
 
 export default function HowItWorks() {
@@ -22,7 +23,7 @@ export default function HowItWorks() {
     },
     {
       title: "Delivery via Email",
-      description: "Once complete, we merge the audio files and send a direct download link to your email inbox.",
+      description: "Once complete, we send a secure link to your email to stream or download your audiobook.",
       icon: <MailIcon className="w-8 h-8 text-white" />,
       color: "bg-green-500"
     }
@@ -57,12 +58,12 @@ export default function HowItWorks() {
       <div className="mt-16 bg-indigo-50 rounded-2xl p-8 text-center border border-indigo-100">
         <h3 className="text-2xl font-bold text-slate-900 mb-2">Ready to try it?</h3>
         <p className="text-slate-600 mb-6">Convert your first document for free today.</p>
-        <button 
-          onClick={() => window.dispatchEvent(new CustomEvent('nav-home'))}
+        <Link 
+          to="/"
           className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
         >
           Get Started
-        </button>
+        </Link>
       </div>
     </div>
   );

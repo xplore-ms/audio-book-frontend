@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 
 export default function Donate() {
   return (
@@ -35,12 +36,12 @@ export default function Donate() {
 
       <div className="mt-12 text-slate-500 text-sm">
         <p>Not ready to donate? No problem!</p>
-        <button 
-          onClick={() => window.dispatchEvent(new CustomEvent('nav-home'))}
-          className="text-indigo-600 hover:underline mt-2 font-medium"
+        <Link 
+          to="/"
+          className="text-indigo-600 hover:underline mt-2 font-medium inline-block"
         >
           Go back to converter
-        </button>
+        </Link>
       </div>
     </div>
   );

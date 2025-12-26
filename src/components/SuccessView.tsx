@@ -1,57 +1,80 @@
-import { CheckCircleIcon, MailIcon } from './Icons';
+import { useNavigate } from 'react-router-dom';
+import { useUser } from '../context/UserContext';
+import { CheckCircleIcon, MailIcon, XIcon, TelegramIcon, WhatsAppIcon } from './Icons';
 
 interface SuccessViewProps {
-  email: string;
   onReset: () => void;
   onContinue: () => void;
 }
 
-export default function SuccessView({ email, onReset, onContinue }: SuccessViewProps) {
+export default function SuccessView({ onReset, onContinue }: SuccessViewProps) {
+  const { user } = useUser();
+  const navigate = useNavigate();
+  const email = user?.email || "your inbox";
+
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-10 max-w-xl w-full text-center border border-slate-100 animate-fade-in-up">
-      <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-        <MailIcon className="w-10 h-10 text-green-600" />
+    <div className="bg-white rounded-[3rem] shadow-2xl p-10 md:p-16 max-w-2xl w-full text-center border border-slate-100 animate-fade-in-up">
+      <div className="w-24 h-24 bg-green-50 rounded-[2rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
+        <CheckCircleIcon className="w-12 h-12 text-green-500" />
       </div>
       
-      <h2 className="text-3xl font-bold text-slate-900 mb-4">
-        It's on the way!
+      <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">
+        Conversion Complete!
       </h2>
       
-      <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-        We have finished processing your PDF. The audio files have been merged and sent to:
-        <br />
-        <span className="font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded mt-2 inline-block">
-          {email}
-        </span>
+      <p className="text-lg text-slate-500 mb-12 leading-relaxed max-w-md mx-auto">
+        Your PDF has been successfully narrated. You can now access the interactive player in your library.
       </p>
 
-      <div className="bg-slate-50 rounded-xl p-6 mb-8 text-left">
-        <div className="flex items-start gap-3">
-          <CheckCircleIcon className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="font-medium text-slate-900">Check your inbox</h4>
-            <p className="text-sm text-slate-500 mt-1">
-              Look for an email with the subject "Your converted audiobook is ready". It contains the direct download link.
-            </p>
-          </div>
+      <div className="bg-indigo-50/50 rounded-[2rem] p-8 mb-12 text-left border border-indigo-100 flex items-center gap-6">
+        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0">
+          <MailIcon className="w-7 h-7 text-indigo-600" />
+        </div>
+        <div>
+          <h4 className="font-black text-slate-900 uppercase tracking-widest text-xs mb-1">Backup Access</h4>
+          <p className="text-sm text-slate-600">
+            A secure link has also been sent to <strong>{email}</strong> for offline listening.
+          </p>
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4 mb-12">
         <button
-          onClick={onContinue}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-sm transition-all hover:-translate-y-0.5"
+          onClick={() => navigate('/my-library')}
+          className="flex items-center justify-center gap-3 py-5 px-8 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-indigo-100 transition-all hover:-translate-y-1 active:scale-95 text-sm"
         >
-          <span>Convert Another Section</span>
-          <span className="bg-indigo-500 rounded px-1.5 py-0.5 text-xs text-indigo-100">Same PDF</span>
+          Open My Library
         </button>
         
-        <button
-          onClick={onReset}
-          className="w-full py-3 px-4 bg-white border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors"
-        >
-          Upload New PDF
-        </button>
+        <div className="flex gap-4">
+          <button
+            onClick={onContinue}
+            className="flex-1 py-4 px-6 bg-white border-2 border-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 hover:border-slate-200 transition-all text-sm"
+          >
+            Same PDF (Retry Range)
+          </button>
+          <button
+            onClick={onReset}
+            className="flex-1 py-4 px-6 bg-white border-2 border-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 hover:border-slate-200 transition-all text-sm"
+          >
+            New Document
+          </button>
+        </div>
+      </div>
+
+      <div className="pt-10 border-t border-slate-50">
+        <h4 className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-[0.3em]">Join the Community</h4>
+        <div className="flex justify-center gap-6">
+          <a href="https://x.com/promisepro138" target="_blank" rel="noopener noreferrer" className="p-4 bg-slate-50 rounded-2xl text-slate-400 hover:bg-slate-900 hover:text-white transition-all transform hover:scale-110">
+            <XIcon className="w-5 h-5" />
+          </a>
+          <a href="https://t.me/placeholder" target="_blank" rel="noopener noreferrer" className="p-4 bg-slate-50 rounded-2xl text-slate-400 hover:bg-sky-500 hover:text-white transition-all transform hover:scale-110">
+            <TelegramIcon className="w-5 h-5" />
+          </a>
+          <a href="https://chat.whatsapp.com/placeholder" target="_blank" rel="noopener noreferrer" className="p-4 bg-slate-50 rounded-2xl text-slate-400 hover:bg-green-500 hover:text-white transition-all transform hover:scale-110">
+            <WhatsAppIcon className="w-5 h-5" />
+          </a>
+        </div>
       </div>
     </div>
   );
