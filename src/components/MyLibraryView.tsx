@@ -63,7 +63,7 @@ export default function MyLibraryView() {
           <div 
             key={book.job_id} 
             className="group bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer"
-            onClick={() => navigate(`/player/${book.job_id}`)}
+            onClick={() => navigate(`/user/player/${book.job_id}`)}
           >
             <div className="flex items-center gap-6 mb-8">
                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
@@ -82,10 +82,7 @@ export default function MyLibraryView() {
             </div>
 
             <div className="space-y-4 mb-8">
-               <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-400 font-medium">File Size</span>
-                  <span className="text-slate-900 font-bold">{book.final_size_mb.toFixed(2)} MB</span>
-               </div>
+               
                <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-400 font-medium">Format</span>
                   <span className="text-indigo-600 font-black uppercase tracking-tighter">HQ Neural WAV</span>
