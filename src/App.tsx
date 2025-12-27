@@ -67,7 +67,8 @@ export default function App() {
             <Route path="/" element={<HomeView />} />
             <Route path="/library" element={<LibraryView />} />
             <Route path="/my-library" element={<MyLibraryView />} />
-            <Route path="/player/:id" element={<PlayerView />} />
+            <Route path="/user/player/:id" element={<PlayerView mode="private" />} />
+            <Route path="/public-library/player/:id" element={<PlayerView mode="public" />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/store" element={<StoreView />} />
             <Route path="/signin" element={<SignIn />} />

@@ -86,8 +86,8 @@ export async function getJobPages(jobId: string): Promise<SyncResponse> {
   return res.data;
 }
 
-export async function getJobSync(jobId: string): Promise<SyncResponse> {
-  const res = await api.get(`/audio/sync/${jobId}`);
+export async function getJobSync(url: string): Promise<SyncResponse> {
+  const res = await api.get(url);
   return res.data;
 }
 
@@ -96,7 +96,6 @@ export async function getExternalSyncData(url: string): Promise<any> {
   return res.data;
 }
 
-// Public Library (Placeholder/Mock for now)
 export async function fetchPublicLibrary(): Promise<Audiobook[]> {
   try {
     const res = await api.get('/public/');

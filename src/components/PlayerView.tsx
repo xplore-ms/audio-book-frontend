@@ -9,7 +9,7 @@ interface Segment {
   end: number;
 }
 
-export default function PlayerView() {
+export default function PlayerView({ mode }: { mode: 'public' | 'private' }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [segments, setSegments] = useState<Segment[]>([]);
@@ -40,7 +40,11 @@ export default function PlayerView() {
 
     const loadData = async () => {
       try {
-        const syncRes = await getJobSync(id);
+        const syncUrl =
+          mode === 'public'
+          ? `/public/sync/${id}`
+          : `/audio/sync/${id}`;
+        const syncRes = await getJobSync(syncUrl);
         const pages = syncRes.pages;
         const sortedPageKeys = Object.keys(pages).sort((a, b) => parseInt(a) - parseInt(b));
         
@@ -121,7 +125,10 @@ export default function PlayerView() {
 
   const handleDownload = () => {
     if (!id || !token) return;
-    const downloadUrl = `${API_BASE_URL}/audio/download/${id}?token=${token}`;
+    const downloadUrl = 
+    mode === 'public'
+          ? `${API_BASE_URL}/public/download/${id}?token=${token}`
+          : `${API_BASE_URL}/audio/download/${id}?token=${token}`;
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = `audiobook-${id.slice(0, 6)}.wav`;
@@ -145,7 +152,11 @@ export default function PlayerView() {
     </div>
   );
 
-  const streamUrl = `${API_BASE_URL}/audio/stream/${id}?token=${token}`;
+  const streamUrl =
+  mode === 'public'
+    ? `${API_BASE_URL}/public/listen/${id}?token=${token}`
+    : `${API_BASE_URL}/audio/stream/${id}?token=${token}`;
+
   const effectiveDuration = (audioRef.current?.duration && audioRef.current.duration !== Infinity) 
     ? audioRef.current.duration 
     : totalDurationFromSegments;

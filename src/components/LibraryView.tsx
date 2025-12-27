@@ -20,7 +20,7 @@ export default function LibraryView() {
 
   const handleAction = (book: Audiobook) => {
     if (book.isFreeDemo) {
-      navigate(`/player/${book.id}`);
+      navigate(`/player/${book.job_id}`);
       return;
     }
 
@@ -30,12 +30,12 @@ export default function LibraryView() {
     }
 
     // Credits are checked locally first to prevent unnecessary 403s from the backend
-    if (user.credits >= book.creditCost) {
+    if (user.credits >= book.required_credits) {
       // We spend locally for UI responsiveness; the backend will also deduct on stream request
-      spendCredits(book.creditCost);
-      navigate(`/player/${book.id}`);
+      spendCredits(book.required_credits);
+      navigate(`/public-library/player/${book.job_id}`);
     } else {
-      alert(`Insufficient credits. You need ${book.creditCost} credits to unlock this audiobook.`);
+      alert(`Insufficient credits. You need ${book.required_credits} credits to unlock this audiobook.`);
       navigate('/store');
     }
   };
@@ -72,7 +72,7 @@ export default function LibraryView() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {books.map(book => (
-          <div key={book.id} className="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl border border-slate-100 flex flex-col group transition-all duration-500 hover:-translate-y-2">
+          <div key={book.job_id} className="bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl border border-slate-100 flex flex-col group transition-all duration-500 hover:-translate-y-2">
             <div className="aspect-[3/4] relative overflow-hidden">
               <img src={book.coverUrl} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000" alt={book.title} />
               
@@ -107,7 +107,7 @@ export default function LibraryView() {
               <div className="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Required Credits</span>
-                  <span className="font-extrabold text-slate-900 text-lg">{book.isFreeDemo ? 'FREE' : book.creditCost}</span>
+                  <span className="font-extrabold text-slate-900 text-lg">{book.isFreeDemo ? 'FREE' : book.required_credits}</span>
                 </div>
                 
                 <div className="text-right">

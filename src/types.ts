@@ -42,13 +42,13 @@ export interface SyncResponse {
 }
 
 export interface Audiobook {
-  id: string;
+  job_id: string;
   title: string;
   author: string;
   description: string;
   coverUrl: string;
   duration: string;
-  creditCost: number;
+  required_credits: number;
   streamUrl: string;
   content?: Sentence[];
   isFreeDemo?: boolean;
