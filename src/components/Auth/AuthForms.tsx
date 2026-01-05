@@ -100,7 +100,7 @@ export function SignUp() {
     setLoading(true);
     setError(null);
     try {
-      const res = await handleRegister(email, password);
+      await handleRegister(email, password);
       setIsVerifying(true);
       setMessage("A verification code has been sent to your email.");
     } catch (err: any) {
