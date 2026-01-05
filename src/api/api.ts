@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { UploadResponse, StartJobResponse, TaskStatusResponse, Audiobook, LoginResponse, UserAudiobook, SyncResponse } from '../types';
+import type { UploadResponse, StartJobResponse, TaskStatusResponse, Audiobook, LoginResponse, UserAudiobook, SyncResponse, PriceQuote } from '../types';
 
 export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://audio-book-elji.onrender.com';
 
@@ -69,6 +69,12 @@ export async function verifyPayment(reference: string): Promise<any> {
   return res.data;
 }
 
+export async function getPriceQuote(credits: number, currency: string): Promise<PriceQuote> {
+  const res = await api.get('/payments/quote', {
+    params: { credits, currency }
+  });
+  return res.data;
+}
 
 export async function wakeBackend() {
   try {

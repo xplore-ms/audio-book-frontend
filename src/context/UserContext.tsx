@@ -19,7 +19,6 @@ export function UserProvider({ children }: React.PropsWithChildren<{}>) {
   useEffect(() => {
     const saved = localStorage.getItem('narrio_user');
     const token = localStorage.getItem('narrio_token');
-    // const refreshToken = localStorage.getItem('narrio_refresh_token');
     if (saved && token) {
       setUser(JSON.parse(saved));
     }
@@ -83,9 +82,11 @@ export function UserProvider({ children }: React.PropsWithChildren<{}>) {
   };
 
   return (
-    <UserContext.Provider value={{ user, handleLogin, handleRegister, refreshUser, logout, claimSocial }}>
-      {children}
-    </UserContext.Provider>
+    <div id="user-provider-container">
+      <UserContext.Provider value={{ user, handleLogin, handleRegister, refreshUser, logout, claimSocial }}>
+        {children}
+      </UserContext.Provider>
+    </div>
   );
 }
 

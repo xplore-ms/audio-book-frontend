@@ -143,7 +143,7 @@ export default function HomeView() {
             isLoading={isLoading} 
           />
         )}
-        {step === "PROCESSING" && jobId && <ProcessingView taskIds={taskIds} jobId={jobId} onComplete={() => setStep("SUCCESS")} onError={setError} />}
+        {step === "PROCESSING" && jobId && <ProcessingView taskIds={taskIds} jobId={jobId} onComplete={() => setStep("SUCCESS")} />}
         {step === "SUCCESS" && (
           <div className="w-full flex justify-center">
             {isReviewMode ? (

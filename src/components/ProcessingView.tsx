@@ -6,7 +6,6 @@ interface ProcessingViewProps {
   taskIds: string[];
   jobId: string;
   onComplete: () => void;
-  onError: (msg: string) => void;
 }
 
 export default function ProcessingView({
