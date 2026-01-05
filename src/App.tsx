@@ -49,9 +49,7 @@ export default function App() {
           <div className="flex justify-between h-20 items-center">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group shrink-0">
-              <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-indigo-100 group-hover:rotate-6 transition-transform">N</div>
-              <span className="text-lg font-black text-slate-900 tracking-tighter uppercase hidden sm:inline">Narrio<span className="text-indigo-600">Voice</span></span>
-              <span className="text-lg font-black text-slate-900 tracking-tighter uppercase sm:hidden">NV</span>
+              <img src="/logo.png" alt="Narrio Logo" height={80} width={80} />
             </Link>
 
             {/* Desktop Navigation */}
@@ -199,8 +197,9 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 text-sm text-slate-500">
           <div className="col-span-1 md:col-span-2">
              <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-sm">N</div>
-              <span className="text-lg font-black text-slate-900 tracking-tighter uppercase">Narrio<span className="text-indigo-600">Voice</span></span>
+              <Link to="/" className="flex items-center gap-2 group shrink-0">
+              <img src="/logo.png" alt="Narrio Logo" height={80} width={80} />
+              </Link>
             </div>
             <p className="max-w-xs leading-relaxed font-medium">Transforming complex documents into immersive audio experiences. Professional quality, neural synthesis.</p>
           </div>
