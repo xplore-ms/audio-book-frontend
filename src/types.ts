@@ -77,6 +77,13 @@ export interface TaskStatusResponse {
   result?: any;
 }
 
+export interface PriceQuote {
+  credits: number;
+  currency: string;
+  amount: number;
+  display: string;
+}
+
 export type AppStep =
   | 'UPLOAD'
   | 'CONFIG'
