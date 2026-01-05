@@ -3,12 +3,13 @@ import { UploadIcon, FileIcon, SpinnerIcon } from './Icons';
 import { useBackend } from '../context/BackendContext';
 
 interface UploadViewProps {
-  onStart: (file: File) => void;
+  onStart: (file: File, title: string) => void;
   isLoading: boolean;
 }
 
 export default function UploadView({ onStart, isLoading }: UploadViewProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isWaking } = useBackend();
@@ -52,6 +53,16 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
       return;
     }
     setFile(f);
+    // Auto-set title from filename (strip .pdf)
+    setTitle(f.name.replace(/\.[^/.]+$/, ""));
+  };
+
+  const handleSubmit = () => {
+    if (file && title.trim()) {
+      onStart(file, title.trim());
+    } else {
+      alert("Please provide a title for your audiobook.");
+    }
   };
 
   return (
@@ -92,15 +103,27 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
         </div>
       ) : (
         <div className="bg-white rounded-[2.5rem] shadow-2xl p-10 border border-slate-100 animate-fade-in-up">
+          <div className="mb-8">
+            <label className="block text-xs font-black text-indigo-400 uppercase tracking-widest mb-3 ml-1">Audiobook Title</label>
+            <input 
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="e.g. My Semester Notes"
+              className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-lg"
+              autoFocus
+            />
+          </div>
+
           <div className="flex items-center gap-5 mb-10 p-5 bg-indigo-50 rounded-3xl border border-indigo-100 group">
             <div className="bg-white p-4 rounded-2xl shadow-sm group-hover:scale-110 transition-transform">
               <FileIcon className="w-8 h-8 text-indigo-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-black text-indigo-950 truncate">
+              <p className="text-sm font-black text-indigo-950 truncate italic opacity-60">
                 {file.name}
               </p>
-              <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest">
+              <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mt-1">
                 {(file.size / 1024 / 1024).toFixed(2)} Megabytes
               </p>
             </div>
@@ -114,7 +137,7 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
           </div>
 
           <button
-            onClick={() => onStart(file)}
+            onClick={handleSubmit}
             disabled={isLoading || isWaking}
             className={`
               w-full flex justify-center items-center gap-3 py-5 px-4 border border-transparent rounded-2xl shadow-xl text-lg font-black uppercase tracking-widest text-white 

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { UploadIcon, FileIcon, CheckCircleIcon, MailIcon } from './Icons';
 

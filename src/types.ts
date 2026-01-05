@@ -10,6 +10,7 @@ export interface User {
   credits: number;
   isLoggedIn: boolean;
   token?: string;
+  refreshToken?: string;
   socialsClaimed: {
     x: boolean;
     telegram: boolean;
@@ -19,6 +20,7 @@ export interface User {
 
 export interface LoginResponse {
   access_token: string;
+  refresh_token: string;
   token_type: string;
   credits: number;
 }
@@ -51,6 +53,7 @@ export interface Audiobook {
   required_credits: number;
   streamUrl: string;
   content?: Sentence[];
+  created_at?: string;
   isFreeDemo?: boolean;
 }
 

@@ -12,6 +12,7 @@ interface ProcessingViewProps {
 export default function ProcessingView({
   taskIds,
   onComplete,
+  onError,
 }: ProcessingViewProps) {
   const [overallProgress, setOverallProgress] = useState(0);
   const tasksProgressRef = useRef<Record<string, number>>({});

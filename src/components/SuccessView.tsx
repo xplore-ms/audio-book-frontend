@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../context/UserContext';
-import { CheckCircleIcon, MailIcon, XIcon, TelegramIcon, WhatsAppIcon } from './Icons';
+import { CheckCircleIcon, XIcon, TelegramIcon, WhatsAppIcon } from './Icons';
 
 interface SuccessViewProps {
   onReset: () => void;
@@ -8,9 +7,7 @@ interface SuccessViewProps {
 }
 
 export default function SuccessView({ onReset, onContinue }: SuccessViewProps) {
-  const { user } = useUser();
   const navigate = useNavigate();
-  const email = user?.email || "your inbox";
 
   return (
     <div className="bg-white rounded-[3rem] shadow-2xl p-10 md:p-16 max-w-2xl w-full text-center border border-slate-100 animate-fade-in-up">
@@ -26,7 +23,7 @@ export default function SuccessView({ onReset, onContinue }: SuccessViewProps) {
         Your PDF has been successfully narrated. You can now access the interactive player in your library.
       </p>
 
-      <div className="bg-indigo-50/50 rounded-[2rem] p-8 mb-12 text-left border border-indigo-100 flex items-center gap-6">
+      {/* <div className="bg-indigo-50/50 rounded-[2rem] p-8 mb-12 text-left border border-indigo-100 flex items-center gap-6">
         <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0">
           <MailIcon className="w-7 h-7 text-indigo-600" />
         </div>
@@ -36,7 +33,7 @@ export default function SuccessView({ onReset, onContinue }: SuccessViewProps) {
             A secure link has also been sent to <strong>{email}</strong> for offline listening.
           </p>
         </div>
-      </div>
+      </div> */}
 
       <div className="flex flex-col gap-4 mb-12">
         <button
