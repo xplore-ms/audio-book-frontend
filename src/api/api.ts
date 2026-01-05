@@ -15,6 +15,61 @@ api.interceptors.request.use(config => {
   return config;
 });
 
+// Automatic Token Refresh Interceptor
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const refreshToken = localStorage.getItem('narrio_refresh_token');
+        if (!refreshToken) throw new Error("No refresh token");
+
+        const form = new FormData();
+        form.append('refresh_token', refreshToken);
+        const res = await axios.post(`${API_BASE_URL}/auth/refresh-token`, form);
+        
+        const { access_token, refresh_token } = res.data;
+        localStorage.setItem('narrio_token', access_token);
+        localStorage.setItem('narrio_refresh_token', refresh_token);
+        
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        localStorage.removeItem('narrio_user');
+        localStorage.removeItem('narrio_token');
+        localStorage.removeItem('narrio_refresh_token');
+        window.location.href = '#/signin';
+        return Promise.reject(refreshError);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// --------------------
+// Payments (Paystack)
+// --------------------
+
+export interface InitiatePaymentResponse {
+  authorization_url: string;
+  reference: string;
+}
+
+export async function initiatePayment(
+  credits: number
+): Promise<InitiatePaymentResponse> {
+  const res = await api.post('/payments/initiate', { credits });
+  return res.data;
+}
+
+export async function verifyPayment(reference: string): Promise<any> {
+  const res = await api.post(`/payments/verify/${reference}`);
+  return res.data;
+}
+
+
 export async function wakeBackend() {
   try {
     await api.get('/health/wake');
@@ -30,11 +85,23 @@ export async function checkBackendReady(): Promise<boolean> {
   }
 }
 
+// --------------------
+// Auth
+// --------------------
+
 export async function registerUser(email: string, password: string): Promise<{ message: string }> {
   const form = new FormData();
   form.append('email', email);
   form.append('password', password);
   const res = await api.post('/auth/register', form);
+  return res.data;
+}
+
+export async function verifyEmailCode(email: string, code: string): Promise<{ message: string }> {
+  const form = new FormData();
+  form.append('email', email);
+  form.append('code', code);
+  const res = await api.post('/auth/verify-email-code', form);
   return res.data;
 }
 
@@ -46,10 +113,19 @@ export async function loginUser(email: string, password: string): Promise<LoginR
   return res.data;
 }
 
+export async function getUserInfo(): Promise<{ email: string, credits: number }> {
+  const res = await api.get('/auth/me');
+  return res.data;
+}
+
+// --------------------
 // PDF Jobs
-export async function uploadPdf(file: File): Promise<UploadResponse> {
+// --------------------
+
+export async function uploadPdf(file: File, title: string): Promise<UploadResponse> {
   const form = new FormData();
   form.append('file', file);
+  form.append('title', title);
   const res = await api.post('/upload', form, { 
     headers: { 'Content-Type': 'multipart/form-data' } 
   });
@@ -75,7 +151,10 @@ export async function getStatus(taskId: string): Promise<TaskStatusResponse> {
   return res.data;
 }
 
-// New Audio Routes
+// --------------------
+// Audio & Library
+// --------------------
+
 export async function fetchMyLibrary(): Promise<UserAudiobook[]> {
   const res = await api.get('/audio/my');
   return res.data;
