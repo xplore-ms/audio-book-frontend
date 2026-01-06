@@ -30,7 +30,7 @@ export interface UserAudiobook {
   final_parts: string[];
   final_size_mb: number;
   title?: string;
-  created_at?: string;
+  created_at: string;
 }
 
 export interface PageSyncInfo {
@@ -41,6 +41,9 @@ export interface PageSyncInfo {
 
 export interface SyncResponse {
   pages: Record<string, PageSyncInfo>;
+}
+export interface AudioResponse {
+  pages: Record<string, PageSyncInfo>[];
 }
 
 export interface Audiobook {
@@ -53,7 +56,7 @@ export interface Audiobook {
   required_credits: number;
   streamUrl: string;
   content?: Sentence[];
-  created_at?: string;
+  created_at: string;
   isFreeDemo?: boolean;
 }
 

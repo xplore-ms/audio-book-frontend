@@ -3,12 +3,13 @@ import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import HomeView from './components/HomeView';
 import HowItWorks from './components/HowItWorks';
 import StoreView from './components/StoreView';
-import LibraryView from './components/LibraryView';
-import MyLibraryView from './components/MyLibraryView';
+import LibraryView from './components/LibraryViewNew';
+import MyLibraryView from './components/MyLibraryViewNew';
 import { SignIn, SignUp } from './components/Auth/AuthForms';
 import { XIcon, TelegramIcon, WhatsAppIcon } from './components/Icons';
 import { useUser } from './context/UserContext';
 import VerifyPayment from './components/VerifyPayment';
+import AudiobookPagesView from './components/AudiobookPagesView';
 
 export default function App() {
   const location = useLocation();
@@ -184,6 +185,8 @@ export default function App() {
             <Route path="/" element={<HomeView />} />
             <Route path="/library" element={<LibraryView />} />
             <Route path="/my-library" element={<MyLibraryView />} />
+            <Route path="/public-library/:jobId" element={<AudiobookPagesView mode='public'/>} />
+            <Route path="/my-library/:jobId" element={<AudiobookPagesView mode='private' />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/payment/verify" element={<VerifyPayment />} />
             <Route path="/store" element={<StoreView />} />

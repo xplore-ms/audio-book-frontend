@@ -1,11 +1,29 @@
 import axios from 'axios';
-import type { UploadResponse, StartJobResponse, TaskStatusResponse, Audiobook, LoginResponse, UserAudiobook, SyncResponse, PriceQuote } from '../types';
+import type { UploadResponse, StartJobResponse, TaskStatusResponse, Audiobook, LoginResponse, UserAudiobook, SyncResponse, PriceQuote, AudioResponse } from '../types';
 
-export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://audio-book-elji.onrender.com';
+
+export const API_BASE_URL =
+  (import.meta as any).env?.VITE_API_URL ||
+  'https://audio-book-elji.onrender.com';
 
 const api = axios.create({
-  baseURL: API_BASE_URL
+  baseURL: API_BASE_URL,
 });
+
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('narrio_token');
@@ -15,35 +33,70 @@ api.interceptors.request.use(config => {
   return config;
 });
 
+
 // Automatic Token Refresh Interceptor
 api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
+  response => response,
+  async error => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry
+    ) {
+      if (isRefreshing) {
+        // Queue the request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({
+            resolve,
+            reject,
+          });
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
+
       try {
         const refreshToken = localStorage.getItem('narrio_refresh_token');
-        if (!refreshToken) throw new Error("No refresh token");
+        if (!refreshToken) throw new Error('No refresh token');
 
         const form = new FormData();
         form.append('refresh_token', refreshToken);
-        const res = await axios.post(`${API_BASE_URL}/auth/refresh-token`, form);
-        
+
+        const res = await axios.post(
+          `${API_BASE_URL}/auth/refresh-token`,
+          form
+        );
+
         const { access_token, refresh_token } = res.data;
+
         localStorage.setItem('narrio_token', access_token);
         localStorage.setItem('narrio_refresh_token', refresh_token);
-        
+
+        api.defaults.headers.Authorization = `Bearer ${access_token}`;
+        processQueue(null, access_token);
+
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
         return api(originalRequest);
-      } catch (refreshError) {
+      } catch (err) {
+        processQueue(err, null);
+
+        // Hard logout
         localStorage.removeItem('narrio_user');
         localStorage.removeItem('narrio_token');
         localStorage.removeItem('narrio_refresh_token');
-        window.location.href = '#/signin';
-        return Promise.reject(refreshError);
+
+        window.location.href = '/signin';
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
       }
     }
+
     return Promise.reject(error);
   }
 );
@@ -166,8 +219,8 @@ export async function fetchMyLibrary(): Promise<UserAudiobook[]> {
   return res.data;
 }
 
-export async function getJobPages(jobId: string): Promise<SyncResponse> {
-  const res = await api.get(`/audio/pages/${jobId}`);
+export async function getJobPages(url: string): Promise<AudioResponse> {
+  const res = await api.get(url);
   return res.data;
 }
 
