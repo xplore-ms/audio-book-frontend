@@ -46,7 +46,6 @@ export default function LibraryView() {
   useEffect(() => {
     fetchPublicLibrary().then(data => {
       setBooks(data);
-      console.log('Fetched public library:', data);
       setLoading(false);
     });
     

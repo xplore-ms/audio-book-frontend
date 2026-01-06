@@ -24,31 +24,31 @@ export function UserProvider({ children }: React.PropsWithChildren<{}>) {
     }
   }, []);
 
-  const saveSession = (u: User | null, token?: string, refreshToken?: string) => {
-    setUser(u);
-    if (u) {
-      localStorage.setItem('narrio_user', JSON.stringify(u));
-      if (token) localStorage.setItem('narrio_token', token);
-      if (refreshToken) localStorage.setItem('narrio_refresh_token', refreshToken);
-    } else {
-      localStorage.removeItem('narrio_user');
-      localStorage.removeItem('narrio_token');
-      localStorage.removeItem('narrio_refresh_token');
-    }
-  };
+  const saveSession = (u: User | null) => {
+  setUser(u);
+  if (u) {
+    localStorage.setItem('narrio_user', JSON.stringify(u));
+  } else {
+    localStorage.removeItem('narrio_user');
+    localStorage.removeItem('narrio_token');
+    localStorage.removeItem('narrio_refresh_token');
+  }
+};
 
-  const refreshUser = async () => {
-    const token = localStorage.getItem('narrio_token');
-    if (!token) return;
-    try {
-      const data = await getUserInfo();
-      const currentUser = JSON.parse(localStorage.getItem('narrio_user') || '{}');
-      const updated = { ...currentUser, credits: data.credits, email: data.email };
-      saveSession(updated);
-    } catch (e) {
-      console.error("Failed to refresh user info:", e);
-    }
-  };
+
+ const refreshUser = async () => {
+  try {
+    const data = await getUserInfo();
+    setUser(prev =>
+      prev
+        ? { ...prev, credits: data.credits, email: data.email }
+        : prev
+    );
+  } catch (e) {
+    console.error('Failed to refresh user info:', e);
+  }
+};
+
 
   const handleLogin = async (email: string, password: string) => {
     const data: LoginResponse = await loginUser(email, password);
@@ -61,7 +61,9 @@ export function UserProvider({ children }: React.PropsWithChildren<{}>) {
       refreshToken: data.refresh_token,
       socialsClaimed: { x: false, telegram: false, whatsapp: false }
     };
-    saveSession(newUser, data.access_token, data.refresh_token);
+    localStorage.setItem('narrio_token', data.access_token);
+    localStorage.setItem('narrio_refresh_token', data.refresh_token);
+    saveSession(newUser);
   };
 
   const handleRegister = async (email: string, password: string) => {
