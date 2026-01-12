@@ -1,3 +1,4 @@
+
 export interface Sentence {
   text: string;
   start: number;
@@ -37,13 +38,15 @@ export interface PageSyncInfo {
   audio_url: string;
   sync_url: string;
   duration: number;
+  format?: 'wav' | 'm4a' | 'aac' | 'mp3';
+  is_seekable?: boolean;
 }
 
 export interface SyncResponse {
   pages: Record<string, PageSyncInfo>;
 }
 export interface AudioResponse {
-  pages: Record<string, PageSyncInfo>[];
+  pages: (PageSyncInfo & { page: string })[];
 }
 
 export interface Audiobook {
@@ -63,6 +66,7 @@ export interface Audiobook {
 export interface UploadResponse {
   job_id: string;
   pages: number;
+  title?: string;
   folder_name?: string;
   remote_pdf_path?: string;
   digits?: number;

@@ -5,6 +5,7 @@ import type { PriceQuote } from '../types';
 
 export default function StoreView() {
   const isNigeria = navigator.language.includes("NG");
+  
   const [credits, setCredits] = useState<number | string>(100);
   const [currency, setCurrency] = useState(isNigeria ? "NGN" : "USD");
   const [quote, setQuote] = useState<PriceQuote | null>(null);
