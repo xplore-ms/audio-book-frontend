@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getJobSync, getExternalSyncData, API_BASE_URL } from '../api/api';
 import { SpinnerIcon, DownloadIcon } from './Icons';
-import type { PageSyncInfo } from '../types';
 
 interface Segment {
   text: string;
@@ -224,7 +223,6 @@ export default function PlayerView({ mode }: { mode: 'public' | 'private' }) {
           crossOrigin="anonymous"
           onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
           onPlay={() => setIsPlaying(true)}
-          {/* Fix: Changed setIsPaused to setIsPlaying to use existing state variable */}
           onPause={() => setIsPlaying(false)}
           onEnded={() => setIsPlaying(false)}
           autoPlay
