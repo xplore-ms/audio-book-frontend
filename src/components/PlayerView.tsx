@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getJobSync, getExternalSyncData, API_BASE_URL } from '../api/api';
 import { SpinnerIcon, DownloadIcon } from './Icons';
+import type { PageSyncInfo } from '../types';
 
 interface Segment {
   text: string;
@@ -18,6 +19,7 @@ export default function PlayerView({ mode }: { mode: 'public' | 'private' }) {
   const [speed, setSpeed] = useState(1);
   const [loading, setLoading] = useState(true);
   const [activeSegmentIndex, setActiveSegmentIndex] = useState(-1);
+  const [isSeekable, setIsSeekable] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +50,14 @@ export default function PlayerView({ mode }: { mode: 'public' | 'private' }) {
         const pages = syncRes.pages;
         const sortedPageKeys = Object.keys(pages).sort((a, b) => parseInt(a) - parseInt(b));
         
+        // Detect seekability from first available page
+        if (sortedPageKeys.length > 0) {
+          const firstPage = pages[sortedPageKeys[0]];
+          const url = firstPage.audio_url.toLowerCase();
+          const format = firstPage.format || (url.endsWith('.wav') ? 'wav' : 'm4a');
+          setIsSeekable(format !== 'wav');
+        }
+
         let offset = 0;
         const allSegments: Segment[] = [];
 
@@ -84,11 +94,8 @@ export default function PlayerView({ mode }: { mode: 'public' | 'private' }) {
     };
 
     loadData();
-  }, [id]);
+  }, [id, mode]);
 
-  // Refined highlighting logic to solve the "off-by-one" or "lag" issue.
-  // We use a very small forward-looking buffer (0.05s) to ensure the 
-  // UI stays in sync with what the user is hearing.
   useEffect(() => {
     const lookAheadTime = currentTime + 0.05;
     const idx = segments.findIndex(s => lookAheadTime >= s.start && lookAheadTime < s.end);
@@ -112,14 +119,12 @@ export default function PlayerView({ mode }: { mode: 'public' | 'private' }) {
   };
 
   const skip = (seconds: number) => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !isSeekable) return;
     audioRef.current.currentTime += seconds;
   };
 
   const handleSeek = (time: number) => {
-    if (!audioRef.current) return;
-    // Seek to exactly the start time of the clicked segment.
-    // Adding 0.001 ensures we are strictly within the segment's range for highlighting detection.
+    if (!audioRef.current || !isSeekable) return;
     audioRef.current.currentTime = time + 0.001;
   };
 
@@ -172,7 +177,12 @@ export default function PlayerView({ mode }: { mode: 'public' | 'private' }) {
         
         <div className="flex-grow mx-8 text-center truncate">
           <h2 className="text-xl font-black text-slate-900 truncate tracking-tight uppercase">Audiobook Session</h2>
-          <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.2em] leading-none mt-2">Active Neural Stream • ID: {id.slice(0,8)}</p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <p className="text-[10px] text-indigo-500 font-black uppercase tracking-[0.2em] leading-none">Active Neural Stream • ID: {id.slice(0,8)}</p>
+            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${isSeekable ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>
+              {isSeekable ? 'Seeking Supported' : 'Seeking Not Supported'}
+            </span>
+          </div>
         </div>
 
         <div className="w-12 flex justify-end">
@@ -189,12 +199,12 @@ export default function PlayerView({ mode }: { mode: 'public' | 'private' }) {
             <span
               key={idx}
               data-index={idx}
-              onClick={() => handleSeek(segment.start)}
-              className={`inline cursor-pointer transition-all duration-300 rounded-xl px-2.5 py-1 text-2xl md:text-3xl font-medium tracking-tight ${
+              onClick={() => isSeekable && handleSeek(segment.start)}
+              className={`inline transition-all duration-300 rounded-xl px-2.5 py-1 text-2xl md:text-3xl font-medium tracking-tight ${
                 idx === activeSegmentIndex 
                   ? 'bg-indigo-600 text-white shadow-2xl shadow-indigo-300 scale-[1.03] mx-1 relative z-10' 
                   : 'text-slate-700 opacity-40 hover:opacity-80 hover:bg-slate-50'
-              }`}
+              } ${isSeekable ? 'cursor-pointer' : 'cursor-default'}`}
             >
               {segment.text}{" "}
             </span>
@@ -214,6 +224,7 @@ export default function PlayerView({ mode }: { mode: 'public' | 'private' }) {
           crossOrigin="anonymous"
           onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
           onPlay={() => setIsPlaying(true)}
+          {/* Fix: Changed setIsPaused to setIsPlaying to use existing state variable */}
           onPause={() => setIsPlaying(false)}
           onEnded={() => setIsPlaying(false)}
           autoPlay
@@ -258,7 +269,12 @@ export default function PlayerView({ mode }: { mode: 'public' | 'private' }) {
           </div>
 
           <div className="flex items-center gap-10">
-            <button onClick={() => skip(-10)} className="text-slate-400 hover:text-white transition-all transform hover:scale-125 active:scale-90">
+            <button 
+              onClick={() => skip(-10)} 
+              disabled={!isSeekable}
+              className={`transition-all transform ${isSeekable ? 'text-slate-400 hover:text-white hover:scale-125 active:scale-90' : 'text-slate-800 cursor-not-allowed opacity-30'}`}
+              title={!isSeekable ? "Seeking not supported for this format" : "Skip Backward 10s"}
+            >
               <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" /></svg>
             </button>
             
@@ -270,7 +286,12 @@ export default function PlayerView({ mode }: { mode: 'public' | 'private' }) {
               )}
             </button>
 
-            <button onClick={() => skip(10)} className="text-slate-400 hover:text-white transition-all transform hover:scale-125 active:scale-90">
+            <button 
+              onClick={() => skip(10)} 
+              disabled={!isSeekable}
+              className={`transition-all transform ${isSeekable ? 'text-slate-400 hover:text-white hover:scale-125 active:scale-90' : 'text-slate-800 cursor-not-allowed opacity-30'}`}
+              title={!isSeekable ? "Seeking not supported for this format" : "Skip Forward 10s"}
+            >
               <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg>
             </button>
           </div>

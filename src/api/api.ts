@@ -191,6 +191,25 @@ export async function uploadPdf(file: File, title: string): Promise<UploadRespon
   return res.data;
 }
 
+export async function getJobInfo(job_id: string): Promise<UploadResponse> {
+  const res = await api.get(`/job/${job_id}`);
+  return res.data;
+}
+
+export async function updateJobTitle(job_id: string, title: string): Promise<any> {
+  const res = await api.patch(`/job/${job_id}`, { title });
+  return res.data;
+}
+
+export async function reuploadPdf(job_id: string, file: File): Promise<any> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await api.post(`/job/${job_id}/reupload`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return res.data;
+}
+
 export async function startJob(job_id: string, start: number = 1, end?: number): Promise<StartJobResponse> {
   const res = await api.post('/start', null, {
     params: { job_id, start, end }

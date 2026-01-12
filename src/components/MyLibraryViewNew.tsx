@@ -47,20 +47,38 @@ export default function MyLibraryView() {
   return (
     <div className="max-w-4xl mx-auto pb-24 px-4 sm:px-6 lg:px-8 space-y-4">
       {books.map(book => (
-        <button
+        <div
           key={book.job_id}
-          onClick={() => navigate(`/my-library/${book.job_id}`)}
-          className="w-full p-5 rounded-3xl flex items-center justify-between bg-white border shadow-sm hover:shadow-xl transition-all"
+          className="w-full p-5 rounded-3xl flex items-center justify-between bg-white border shadow-sm hover:shadow-xl transition-all group"
         >
-          <div className="flex flex-col text-left">
+          <button 
+            onClick={() => navigate(`/my-library/${book.job_id}`)}
+            className="flex flex-col text-left flex-grow"
+          >
             <h3 className="text-lg font-black text-slate-900 truncate uppercase">
               {book.title || `Untitled ${book.job_id.slice(0, 4)}`}
             </h3>
             <p className="text-xs text-slate-400 uppercase mt-1">
               {new Date(book.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
+          </button>
+
+          <div className="flex items-center gap-3">
+             <button
+              onClick={() => navigate(`/configure/${book.job_id}`)}
+              className="px-4 py-2 bg-slate-50 text-slate-400 hover:bg-indigo-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+              title="Process more pages or request review"
+            >
+              Manage
+            </button>
+            <button
+               onClick={() => navigate(`/my-library/${book.job_id}`)}
+               className="w-10 h-10 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+            </button>
           </div>
-        </button>
+        </div>
       ))}
     </div>
   );
