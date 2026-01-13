@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation  } from 'react-router-dom';
 import { getJobPages } from '../api/api';
 import { PlayIcon, PauseIcon, SpinnerIcon } from './Icons';
 import type { PageSyncInfo } from '../types';
@@ -9,13 +9,22 @@ interface PageAudio extends PageSyncInfo {
 }
 
 export default function AudiobookPagesView({ mode }: { mode: 'public' | 'private' }) {
-  {/* Fix: Removed reference to non-existent 'jobIdFromParams' variable */}
   const { jobId: jobIdParam } = useParams();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [pages, setPages] = useState<PageAudio[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { state } = useLocation();
+  const bookTitle = state?.title ?? 'Audiobook';
+
+  useEffect(() => {
+    document.title = `${bookTitle} • Narrio`;
+    
+    return () => {
+      document.title = 'Narrio';
+    };
+  }, [bookTitle]);
 
   const currentTrack = currentIndex !== null ? pages[currentIndex] : null;
   const isSeekable = currentTrack ? (currentTrack.format !== 'wav' && !currentTrack.audio_url.toLowerCase().endsWith('.wav')) : true;
@@ -115,7 +124,10 @@ const playPage = (index: number) => {
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8 text-center">
-         <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">Document Pages</h2>
+        <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">
+          {bookTitle}
+        </h2>
+
          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Select a page to begin listening</p>
       </div>
 
