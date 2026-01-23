@@ -60,6 +60,7 @@ export default function ConfigureJobView() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
 
+
   const checkActiveTasks = () => {
     const saved = localStorage.getItem('narrio_active_processing');
     if (saved) {
