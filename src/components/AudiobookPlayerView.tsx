@@ -114,7 +114,7 @@ export default function AudiobookPlayerView({ mode }: { mode: 'public' | 'privat
   };
 
   const currentTrack = tracks[currentIndex];
-  const isSeekable = currentTrack ? (currentTrack.audioSrc.toLowerCase().indexOf('.wav') === -1) : true;
+  // const isSeekable = currentTrack ? (currentTrack.audioSrc.toLowerCase().indexOf('.wav') === -1) : true;
 
   if (loading) {
     return (
