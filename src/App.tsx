@@ -11,6 +11,7 @@ import { XIcon, TelegramIcon, WhatsAppIcon } from './components/Icons';
 import { useUser } from './context/UserContext';
 import VerifyPayment from './components/VerifyPayment';
 import AudiobookPagesView from './components/AudiobookPagesView';
+import AudiobookPlayerView from './components/AudiobookPlayerView';
 
 export default function App() {
   const location = useLocation();
@@ -187,7 +188,9 @@ export default function App() {
             <Route path="/library" element={<LibraryView />} />
             <Route path="/my-library" element={<MyLibraryView />} />
             <Route path="/public-library/:jobId" element={<AudiobookPagesView mode='public'/>} />
-            <Route path="/my-library/:jobId" element={<AudiobookPagesView mode='private' />} />
+            {/* <Route path="/my-library/:jobId" element={<AudiobookPagesView mode='private' />} /> */}
+            <Route path="/my-library/:jobId" element={<AudiobookPlayerView mode='private' />} />
+            <Route path="/shared/:jobId" element={<AudiobookPlayerView mode='private' />} />
             <Route path="/configure/:jobId" element={<ConfigureJobView />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/payment/verify" element={<VerifyPayment />} />

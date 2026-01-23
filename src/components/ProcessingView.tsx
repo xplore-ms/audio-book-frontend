@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getStatus } from "../api/api";
 import { SpinnerIcon } from "./Icons";
 
@@ -12,52 +12,72 @@ export default function ProcessingView({
   taskIds,
   onComplete,
 }: ProcessingViewProps) {
-  const [overallProgress, setOverallProgress] = useState(0);
   const tasksProgressRef = useRef<Record<string, number>>({});
+  const [overallProgress, setOverallProgress] = useState(0);
+  const [hasCompleted, setHasCompleted] = useState(false);
 
   const totalTasks = taskIds.length;
   const percent = Math.round(overallProgress);
 
   useEffect(() => {
+    if (!taskIds.length || hasCompleted) return;
+
+    // Initialize progress map
     taskIds.forEach((tid) => {
-      if (!(tid in tasksProgressRef.current)) {
+      if (tasksProgressRef.current[tid] === undefined) {
         tasksProgressRef.current[tid] = 0;
       }
     });
 
     const interval = setInterval(async () => {
       try {
-        await Promise.all(
-          taskIds.map(async (tid) => {
-            if (tasksProgressRef.current[tid] === 100) return;
-
-            const status = await getStatus(tid);
-
-            if (status.state === "PROGRESS") {
-              tasksProgressRef.current[tid] = status.result?.percent ?? 0;
-            }
-            if (status.state === "SUCCESS") {
-              tasksProgressRef.current[tid] = 100;
-            }
-            if (status.state === "FAILURE") {
-              tasksProgressRef.current[tid] = 100; // Skip failed tasks to allow progress
-            }
-          })
+        const statuses = await Promise.all(
+          taskIds.map((tid) => getStatus(tid))
         );
 
-        const values = Object.values(tasksProgressRef.current) as number[];
-        const avg = values.length > 0
-          ? values.reduce((sum: number, v: number) => sum + v, 0) / values.length
-          : 0;
+        let completedCount = 0;
+
+        statuses.forEach((status, index) => {
+          const tid = taskIds[index];
+
+          if (status.state === "SUCCESS") {
+            tasksProgressRef.current[tid] = 100;
+            completedCount++;
+          } else if (status.state === "FAILURE") {
+            console.error(`Task ${tid} failed`, status.result);
+            tasksProgressRef.current[tid] = 100;
+            completedCount++;
+          } else {
+            // Best-effort progress (only works if you emit meta.percent)
+            const pct =
+              typeof status.result?.percent === "number"
+                ? status.result.percent
+                : 0;
+
+            tasksProgressRef.current[tid] = Math.max(
+              tasksProgressRef.current[tid],
+              pct
+            );
+          }
+        });
+
+        const values = Object.values(tasksProgressRef.current);
+        const avg =
+          values.length > 0
+            ? values.reduce((s, v) => s + v, 0) / values.length
+            : 0;
 
         setOverallProgress(avg);
 
-        if (values.every((v) => v === 100)) {
+        // ✅ Authoritative completion
+        if (completedCount === taskIds.length) {
           clearInterval(interval);
-          // Backend auto-merges after page tasks, so we can wrap up
+          setHasCompleted(true);
+
+          // Small UX delay so bar reaches 100%
           setTimeout(() => {
             onComplete();
-          }, 2000);
+          }, 1500);
         }
       } catch (err) {
         console.error("Polling error:", err);
@@ -65,7 +85,7 @@ export default function ProcessingView({
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [taskIds, onComplete]);
+  }, [taskIds, onComplete, hasCompleted]);
 
   return (
     <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-xl border border-slate-100 text-center animate-fade-in">
@@ -74,7 +94,8 @@ export default function ProcessingView({
       </h2>
 
       <p className="text-slate-500 mb-8 text-sm">
-        Extracting text and generating narration. Audio is automatically merged on completion.
+        Extracting text and generating narration. Audio is automatically merged
+        on completion.
       </p>
 
       <div className="w-full px-4 mb-10">
@@ -98,7 +119,8 @@ export default function ProcessingView({
       <div className="flex justify-center items-center gap-2 text-slate-600 text-sm bg-slate-50 py-3 px-6 rounded-2xl inline-flex">
         <SpinnerIcon className="w-5 h-5 text-indigo-600" />
         <span>
-          Converting <span className="font-bold text-indigo-700">{totalTasks}</span> pages…
+          Converting{" "}
+          <span className="font-bold text-indigo-700">{totalTasks}</span> pages…
         </span>
       </div>
     </div>

@@ -223,6 +223,12 @@ export async function requestFullReview(job_id: string): Promise<any> {
   });
   return res.data;
 }
+export async function shareAudiobook(job_id: string): Promise<any> {
+  const res = await api.post(`/audio/share/${job_id}`, null, {
+    
+  });
+  return res.data;
+}
 
 export async function getStatus(taskId: string): Promise<TaskStatusResponse> {
   const res = await api.get(`/status/${taskId}`);
