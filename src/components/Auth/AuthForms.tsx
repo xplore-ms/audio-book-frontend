@@ -15,7 +15,6 @@ export function SignIn() {
   const location = useLocation();
   const from = location.state?.from || '/';
 
-  console.log('From location:', from);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -99,7 +98,6 @@ export function SignUp() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from || '/';
-  console.log('From location:', from);
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
