@@ -12,6 +12,7 @@ import { useUser } from './context/UserContext';
 import VerifyPayment from './components/VerifyPayment';
 import AudiobookPagesView from './components/AudiobookPagesView';
 import AudiobookPlayerView from './components/AudiobookPlayerView';
+import ProtectedRoute from './components/Protected';
 
 export default function App() {
   const location = useLocation();
@@ -184,17 +185,16 @@ export default function App() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-96 bg-gradient-to-b from-indigo-50/50 to-transparent -z-10" />
         <div className="w-full max-w-7xl mx-auto py-6 md:py-10">
           <Routes>
-            <Route path="/" element={<HomeView />} />
-            <Route path="/library" element={<LibraryView />} />
-            <Route path="/my-library" element={<MyLibraryView />} />
-            <Route path="/public-library/:jobId" element={<AudiobookPagesView mode='public'/>} />
-            {/* <Route path="/my-library/:jobId" element={<AudiobookPagesView mode='private' />} /> */}
-            <Route path="/my-library/:jobId" element={<AudiobookPlayerView mode='private' />} />
-            <Route path="/shared/:jobId" element={<AudiobookPlayerView mode='private' />} />
-            <Route path="/configure/:jobId" element={<ConfigureJobView />} />
+            <Route path="/" element={<ProtectedRoute><HomeView /></ProtectedRoute>} />
+            <Route path="/library" element={<ProtectedRoute><LibraryView /></ProtectedRoute>} />
+            <Route path="/my-library" element={<ProtectedRoute><MyLibraryView /></ProtectedRoute>} />
+            <Route path="/public-library/:jobId" element={<ProtectedRoute><AudiobookPagesView mode='public'/></ProtectedRoute>} />
+            <Route path="/my-library/:jobId" element={<ProtectedRoute><AudiobookPlayerView mode='private' /></ProtectedRoute>} />
+            <Route path="/shared/:jobId" element={<ProtectedRoute><AudiobookPlayerView mode='private' /></ProtectedRoute>} />
+            <Route path="/configure/:jobId" element={<ProtectedRoute><ConfigureJobView /></ProtectedRoute>} />
             <Route path="/how-it-works" element={<HowItWorks />} />
-            <Route path="/payment/verify" element={<VerifyPayment />} />
-            <Route path="/store" element={<StoreView />} />
+            <Route path="/payment/verify" element={<ProtectedRoute><VerifyPayment /></ProtectedRoute>} />
+            <Route path="/store" element={<ProtectedRoute><StoreView /></ProtectedRoute>} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
           </Routes>

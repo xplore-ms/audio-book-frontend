@@ -15,6 +15,7 @@ interface Track {
   color: string;
   image: string;
   audioSrc: string;
+  expires_at: number;
 }
 
 export default function AudiobookPlayerView({ mode }: { mode: 'public' | 'private' }) {
@@ -28,13 +29,21 @@ export default function AudiobookPlayerView({ mode }: { mode: 'public' | 'privat
   const { state } = useLocation();
   const bookTitle = state?.title ?? 'Audiobook';
 
+
+  const isExpired = (expiresAt: number, buffer = 30) => {
+    return Date.now() / 1000 > expiresAt - buffer;
+  };
+
+ 
+
+
   useEffect(() => {
-    document.title = `${bookTitle} • Narrio`;
+    document.title = `${bookTitle} Page ${currentIndex + 1} • Narrio Audiobook`;
 
     return () => {
       document.title = 'Narrio';
     };
-  }, [bookTitle]);
+  }, [bookTitle, currentIndex]);
 
   useEffect(() => {
     if (!jobIdParam) return;
@@ -55,7 +64,8 @@ export default function AudiobookPlayerView({ mode }: { mode: 'public' | 'privat
           artist: bookTitle,
           color: '#6366f1', // indigo-500
           image: '/vite.svg', // default image
-          audioSrc: p.audio_url
+          audioSrc: p.audio_url,
+          expires_at: p.expires_at
         }));
 
         setTracks(tracksArray);
@@ -83,7 +93,8 @@ export default function AudiobookPlayerView({ mode }: { mode: 'public' | 'privat
       artist: bookTitle,
       color: '#6366f1',
       image: '/vite.svg',
-      audioSrc: p.audio_url
+      audioSrc: p.audio_url,
+      expires_at: p.expires_at
     }));
 
     setTracks(tracksArray);
@@ -104,14 +115,30 @@ export default function AudiobookPlayerView({ mode }: { mode: 'public' | 'privat
     await refreshPlaylist(resumeIndex);
   };
 
-  const playPage = (index: number) => {
-    if (index === currentIndex) {
-      setIsPlaying(!isPlaying);
+  const playPage = async (index: number) => {
+    const track = tracks[index];
+
+    if (isExpired(track.expires_at)) {
+      await refreshPlaylist(index);
     } else {
-      setCurrentIndex(index);
+      setCurrentIndex(index); 
       setIsPlaying(true);
     }
   };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const track = tracks[currentIndex];
+      if (!track) return;
+
+      if (isExpired(track.expires_at, 60)) {
+        refreshPlaylist(currentIndex);
+      }
+    }, 15000); // check every 15s
+
+    return () => clearInterval(interval);
+  }, [currentIndex, tracks]);
+
 
   const currentTrack = tracks[currentIndex];
   // const isSeekable = currentTrack ? (currentTrack.audioSrc.toLowerCase().indexOf('.wav') === -1) : true;

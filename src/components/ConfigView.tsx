@@ -11,14 +11,16 @@ interface ConfigViewProps {
 }
 
 export default function ConfigView({ numPages, onConfirm, onLowCredits, isLoading, initialStartPage = 1 }: ConfigViewProps) {
-  const [startPage, setStartPage] = useState<number>(initialStartPage);
-  const [endPage, setEndPage] = useState<number>(Math.min(initialStartPage + 3, numPages));
+  const [startPage, setStartPage] = useState<number | ''>(initialStartPage);
+  const [endPage, setEndPage] = useState<number | ''>(Math.min(initialStartPage + 3, numPages));
   const [isFullReview, setIsFullReview] = useState(false);
   const { user } = useUser();
   const MAX_STANDARD_PAGES = 4;
 
   useEffect(() => {
     if (!isFullReview) {
+    if (startPage === '' || endPage === '') return;
+
       const currentRange = endPage - startPage + 1;
       if (currentRange > MAX_STANDARD_PAGES) {
         setEndPage(startPage + MAX_STANDARD_PAGES - 1);
@@ -29,13 +31,27 @@ export default function ConfigView({ numPages, onConfirm, onLowCredits, isLoadin
   }, [startPage]);
 
   const handleStartChange = (val: string) => {
-    const num = parseInt(val) || 1;
+    if (val === '') {
+      setStartPage('');
+      return;
+    }
+    const num = parseInt(val);
+    if (isNaN(num)) return;
     const clamped = Math.max(1, Math.min(num, numPages));
     setStartPage(clamped);
   };
 
   const handleEndChange = (val: string) => {
-    const num = parseInt(val) || 1;
+    if (val === '') {
+      setEndPage('');
+      return;
+    }
+    if (startPage === '') {
+      setEndPage('');
+      return;
+    }
+    const num = parseInt(val);
+    if (isNaN(num)) return;
     let clamped = Math.max(startPage, Math.min(num, numPages));
     if (clamped - startPage + 1 > MAX_STANDARD_PAGES) {
       clamped = startPage + MAX_STANDARD_PAGES - 1;
@@ -43,11 +59,14 @@ export default function ConfigView({ numPages, onConfirm, onLowCredits, isLoadin
     setEndPage(clamped);
   };
 
-  const effectivePageCount = isFullReview ? numPages : (endPage - startPage + 1);
-  const creditCost = effectivePageCount;
+  const startNum = startPage === '' ? 0 : startPage;
+  const endNum = endPage === '' ? -1 : endPage;
+  const effectivePageCount = isFullReview ? numPages : (endNum - startNum + 1);
+  const creditCost = startPage === '' ? 0 : effectivePageCount;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (startPage === '' || endPage === '') return;
     if (user && user.credits < creditCost) {
       onLowCredits(creditCost);
       return;

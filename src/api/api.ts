@@ -26,6 +26,10 @@ const processQueue = (error: any, token: string | null = null) => {
 
 
 api.interceptors.request.use(config => {
+  if (config.url?.includes('/auth/refresh-token')) {
+    return config;
+  }
+
   const token = localStorage.getItem('narrio_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -33,24 +37,16 @@ api.interceptors.request.use(config => {
   return config;
 });
 
-
 // Automatic Token Refresh Interceptor
 api.interceptors.response.use(
-  response => response,
+  res => res,
   async error => {
     const originalRequest = error.config;
 
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry
-    ) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // Queue the request
         return new Promise((resolve, reject) => {
-          failedQueue.push({
-            resolve,
-            reject,
-          });
+          failedQueue.push({ resolve, reject });
         }).then(token => {
           originalRequest.headers.Authorization = `Bearer ${token}`;
           return api(originalRequest);
@@ -62,35 +58,28 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem('narrio_refresh_token');
-        if (!refreshToken) throw new Error('No refresh token');
+        if (!refreshToken) throw error;
 
         const form = new FormData();
         form.append('refresh_token', refreshToken);
 
-        const res = await axios.post(
-          `${API_BASE_URL}/auth/refresh-token`,
-          form
-        );
-
+        const res = await api.post('/auth/refresh-token', form);
         const { access_token, refresh_token } = res.data;
 
         localStorage.setItem('narrio_token', access_token);
         localStorage.setItem('narrio_refresh_token', refresh_token);
 
-        api.defaults.headers.Authorization = `Bearer ${access_token}`;
         processQueue(null, access_token);
-
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
         return api(originalRequest);
-      } catch (err) {
+      } catch (err: any) {
         processQueue(err, null);
 
-        // Hard logout
-        localStorage.removeItem('narrio_user');
-        localStorage.removeItem('narrio_token');
-        localStorage.removeItem('narrio_refresh_token');
+        if (err.response?.status === 401) {
+          localStorage.clear();
+          window.location.href = '/signin';
+        }
 
-        window.location.href = '/signin';
         return Promise.reject(err);
       } finally {
         isRefreshing = false;
@@ -100,6 +89,7 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
 
 // --------------------
 // Payments (Paystack)
