@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUser } from '../../context/UserContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { SpinnerIcon, EyeIcon, EyeSlashIcon } from '../Icons';
 import { verifyEmailCode } from '../../api/api';
 
@@ -12,14 +12,17 @@ export function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const { handleLogin } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || '/';
 
+  console.log('From location:', from);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
       await handleLogin(email, password);
-      navigate('/');
+      navigate(from);
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       if (typeof detail === 'string' && detail.toLowerCase().includes('verify')) {
@@ -77,7 +80,7 @@ export function SignIn() {
         </button>
       </form>
       <p className="mt-10 text-center text-sm text-slate-400 font-bold uppercase tracking-wide">
-        New here? <button onClick={() => navigate('/signup')} className="text-indigo-600 hover:underline">Create Account</button>
+        New here? <button onClick={() => navigate('/signup', { state: { from } })} className="text-indigo-600 hover:underline">Create Account</button>
       </p>
     </div>
   );
@@ -94,6 +97,9 @@ export function SignUp() {
   const [message, setMessage] = useState<string | null>(null);
   const { handleRegister, handleLogin } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || '/';
+  console.log('From location:', from);
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +124,7 @@ export function SignUp() {
       await verifyEmailCode(email, code);
       // Success - login
       await handleLogin(email, password);
-      navigate('/');
+      navigate(from);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Invalid verification code');
     } finally {
@@ -207,7 +213,7 @@ export function SignUp() {
         </button>
       </form>
       <p className="mt-10 text-center text-sm text-slate-400 font-bold uppercase tracking-wide">
-        Member already? <button onClick={() => navigate('/signin')} className="text-indigo-600 hover:underline">Sign In</button>
+        Member already? <button onClick={() => navigate('/signin', { state: { from } })} className="text-indigo-600 hover:underline">Sign In</button>
       </p>
     </div>
   );

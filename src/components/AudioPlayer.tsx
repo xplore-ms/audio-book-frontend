@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import AudioControls from "./AudioControl";
-import  Image  from "../assets/narrioai.png";
+import Image from "../assets/narrioai.png";
 import Backdrop from "./Backdrop";
 import "./styles.css";
 
@@ -20,11 +20,11 @@ interface AudioPlayerProps {
   onError?: () => void;
 }
 
-const AudioPlayer: React.FC<AudioPlayerProps> = ({ 
-  tracks, 
-  initialTrackIndex = 0, 
-  onTrackIndexChange, 
-  initialIsPlaying = false, 
+const AudioPlayer: React.FC<AudioPlayerProps> = ({
+  tracks,
+  initialTrackIndex = 0,
+  onTrackIndexChange,
+  initialIsPlaying = false,
   onIsPlayingChange,
   onError
 }) => {
@@ -32,40 +32,24 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [trackProgress, setTrackProgress] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(initialIsPlaying);
 
-  useEffect(() => {
-    setTrackIndex(initialTrackIndex);
-  }, [initialTrackIndex]);
-
-  useEffect(() => {
-    setIsPlaying(initialIsPlaying);
-  }, [initialIsPlaying]);
-
-  const { title, artist, color, audioSrc } = tracks[trackIndex];
-
-  const audioRef = useRef<HTMLAudioElement>(new Audio(audioSrc));
+  const audioRef = useRef<HTMLAudioElement>(new Audio(tracks[initialTrackIndex]?.audioSrc));
   const intervalRef = useRef<number | null>(null);
   const isReady = useRef<boolean>(false);
+  const hasPreloadedNext = useRef<boolean>(false);
 
+  const { title, artist, color, audioSrc } = tracks[trackIndex];
   const { duration } = audioRef.current;
 
-  const currentPercentage = duration
-    ? `${(trackProgress / duration) * 100}%`
-    : "0%";
+  /* ------------------ helpers ------------------ */
 
-  const trackStyling = `
-    -webkit-gradient(
-      linear,
-      0% 0%,
-      100% 0%,
-      color-stop(${currentPercentage}, #fff),
-      color-stop(${currentPercentage}, #777)
-    )
-  `;
+  const preloadAudio = (src: string) => {
+    const audio = new Audio();
+    audio.preload = "auto";
+    audio.src = src;
+  };
 
   const startTimer = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
+    if (intervalRef.current) clearInterval(intervalRef.current);
 
     intervalRef.current = window.setInterval(() => {
       if (audioRef.current.ended) {
@@ -76,18 +60,77 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }, 1000);
   };
 
-  const onScrub = (value: number) => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+  /* ------------------ playback ------------------ */
+
+  useEffect(() => {
+    setTrackIndex(initialTrackIndex);
+  }, [initialTrackIndex]);
+
+  useEffect(() => {
+    setIsPlaying(initialIsPlaying);
+  }, [initialIsPlaying]);
+
+  useEffect(() => {
+    if (isPlaying) {
+      audioRef.current.play();
+      startTimer();
+    } else {
+      audioRef.current.pause();
     }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    audioRef.current.pause();
+    audioRef.current = new Audio(audioSrc);
+    audioRef.current.addEventListener("error", () => onError?.());
+
+    setTrackProgress(0);
+    hasPreloadedNext.current = false;
+
+    if (isReady.current) {
+      audioRef.current.play();
+      setIsPlaying(true);
+      startTimer();
+    } else {
+      isReady.current = true;
+    }
+  }, [trackIndex, audioSrc]);
+
+  /* ------------------ 🔥 PRELOAD NEXT TRACK ------------------ */
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => {
+      if (!audio.duration) return;
+
+      const progress = audio.currentTime / audio.duration;
+
+      // Preload next track at ~85%
+      if (progress > 0.85 && !hasPreloadedNext.current) {
+        const nextTrack = tracks[trackIndex + 1];
+        if (nextTrack) {
+          preloadAudio(nextTrack.audioSrc);
+          hasPreloadedNext.current = true;
+        }
+      }
+    };
+
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    return () => audio.removeEventListener("timeupdate", handleTimeUpdate);
+  }, [trackIndex, tracks]);
+
+  /* ------------------ controls ------------------ */
+
+  const onScrub = (value: number) => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
     audioRef.current.currentTime = value;
     setTrackProgress(value);
   };
 
   const onScrubEnd = () => {
-    if (!isPlaying) {
-      setIsPlaying(true);
-    }
+    if (!isPlaying) setIsPlaying(true);
     startTimer();
   };
 
@@ -104,46 +147,30 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   useEffect(() => {
-    if (isPlaying) {
-      audioRef.current.play();
-      startTimer();
-    } else {
-      audioRef.current.pause();
-    }
-  }, [isPlaying]);
-
-  useEffect(() => {
-    audioRef.current.pause();
-    audioRef.current = new Audio(audioSrc);
-    audioRef.current.addEventListener('error', () => onError?.());
-    setTrackProgress(0);
-
-    if (isReady.current) {
-      audioRef.current.play();
-      setIsPlaying(true);
-      startTimer();
-    } else {
-      isReady.current = true;
-    }
-  }, [trackIndex, audioSrc]);
-
-  useEffect(() => {
     return () => {
       audioRef.current.pause();
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
+
+  const currentPercentage = duration
+    ? `${(trackProgress / duration) * 100}%`
+    : "0%";
+
+  const trackStyling = `
+    -webkit-gradient(
+      linear,
+      0% 0%,
+      100% 0%,
+      color-stop(${currentPercentage}, #fff),
+      color-stop(${currentPercentage}, #777)
+    )
+  `;
 
   return (
     <div className="audio-player">
       <div className="track-info">
-        <img
-          className="artwork"
-          src={Image}
-          alt={`track artwork for ${title} by ${artist}`}
-        />
+        <img className="artwork" src={Image} alt={`${title} artwork`} />
 
         <h2 className="title">{title}</h2>
         <h3 className="artist">{artist}</h3>
@@ -152,7 +179,10 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
           isPlaying={isPlaying}
           onPrevClick={toPrevTrack}
           onNextClick={toNextTrack}
-          onPlayPauseClick={(play) => { setIsPlaying(play); onIsPlayingChange?.(play); }}
+          onPlayPauseClick={(play) => {
+            setIsPlaying(play);
+            onIsPlayingChange?.(play);
+          }}
         />
 
         <input

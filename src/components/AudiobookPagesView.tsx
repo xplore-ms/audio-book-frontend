@@ -22,7 +22,7 @@ export default function AudiobookPagesView({ mode }: { mode: 'public' | 'private
     document.title = `${bookTitle} • Narrio`;
     
     return () => {
-      document.title = 'Narrio';
+      document.title = 'Narrio Audiobooks';
     };
   }, [bookTitle]);
 

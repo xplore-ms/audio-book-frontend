@@ -12,11 +12,6 @@ export interface User {
   isLoggedIn: boolean;
   token?: string;
   refreshToken?: string;
-  socialsClaimed: {
-    x: boolean;
-    telegram: boolean;
-    whatsapp: boolean;
-  };
 }
 
 export interface LoginResponse {
