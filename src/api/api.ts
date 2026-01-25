@@ -168,6 +168,26 @@ export async function getUserInfo(): Promise<{ email: string, credits: number }>
 }
 
 // --------------------
+// Forgot Password
+// --------------------
+
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+  const form = new FormData();
+  form.append('email', email);
+  const res = await api.post('/auth/forgot-password', form);
+  return res.data;
+}
+
+export async function resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }> {
+  const form = new FormData();
+  form.append('email', email);
+  form.append('code', code);
+  form.append('new_password', newPassword);
+  const res = await api.post('/auth/reset-password', form);
+  return res.data;
+}
+
+// --------------------
 // PDF Jobs
 // --------------------
 
