@@ -16,7 +16,7 @@ export function SignIn() {
   const [newPassword, setNewPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const { handleLogin } = useUser();
+  const { login } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from || '/';
@@ -26,7 +26,7 @@ export function SignIn() {
     setLoading(true);
     setError(null);
     try {
-      await handleLogin(email, password);
+      await login(email, password);
       navigate(from);
     } catch (err: any) {
       const detail = err.response?.data?.detail;
@@ -231,7 +231,7 @@ export function SignUp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const { handleRegister, handleLogin } = useUser();
+  const { register, login } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from || '/';
@@ -241,7 +241,26 @@ export function SignUp() {
     setLoading(true);
     setError(null);
     try {
-      await handleRegister(email, password);
+      const fingerprintData = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        screenDepth: screen.colorDepth,
+        hardwareConcurrency: navigator.hardwareConcurrency ?? null
+      };
+
+      const fingerprintHash = await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(JSON.stringify(fingerprintData))
+      );
+
+      const deviceFingerprintHash = Array.from(
+        new Uint8Array(fingerprintHash)
+      ).map(b => b.toString(16).padStart(2, '0')).join('');
+
+      console.log("Device Fingerprint Hash:", deviceFingerprintHash);
+      await register(email, password, deviceFingerprintHash);
       setIsVerifying(true);
       setMessage("A verification code has been sent to your email.");
     } catch (err: any) {
@@ -258,7 +277,7 @@ export function SignUp() {
     try {
       await verifyEmailCode(email, code);
       // Success - login
-      await handleLogin(email, password);
+      await login(email, password);
       navigate(from);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Invalid verification code');

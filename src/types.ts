@@ -41,6 +41,7 @@ export interface SyncResponse {
   pages: Record<string, PageSyncInfo>;
 }
 export interface AudioResponse {
+  total_pages: number;
   pages: (PageSyncInfo & { page: string })[];
 }
 

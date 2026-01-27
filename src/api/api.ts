@@ -10,20 +10,6 @@ const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
-let isRefreshing = false;
-let failedQueue: any[] = [];
-
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
-
 
 api.interceptors.request.use(config => {
   if (config.url?.includes('/auth/refresh-token')) {
@@ -44,17 +30,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
-        });
-      }
-
       originalRequest._retry = true;
-      isRefreshing = true;
 
       try {
         const refreshToken = localStorage.getItem('narrio_refresh_token');
@@ -64,31 +40,21 @@ api.interceptors.response.use(
         form.append('refresh_token', refreshToken);
 
         const res = await api.post('/auth/refresh-token', form);
-        const { access_token, refresh_token } = res.data;
+        localStorage.setItem('narrio_token', res.data.access_token);
+        localStorage.setItem('narrio_refresh_token', res.data.refresh_token);
 
-        localStorage.setItem('narrio_token', access_token);
-        localStorage.setItem('narrio_refresh_token', refresh_token);
-
-        processQueue(null, access_token);
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        originalRequest.headers.Authorization = `Bearer ${res.data.access_token}`;
         return api(originalRequest);
-      } catch (err: any) {
-        processQueue(err, null);
-
-        if (err.response?.status === 401) {
-          localStorage.clear();
-          window.location.href = '/signin';
-        }
-
-        return Promise.reject(err);
-      } finally {
-        isRefreshing = false;
+      } catch {
+        localStorage.clear();
+        return Promise.reject(error);
       }
     }
 
     return Promise.reject(error);
   }
 );
+
 
 
 // --------------------
@@ -138,10 +104,11 @@ export async function checkBackendReady(): Promise<boolean> {
 // Auth
 // --------------------
 
-export async function registerUser(email: string, password: string): Promise<{ message: string }> {
+export async function registerUser(email: string, password: string, deviceFingerprintHash: any): Promise<{ message: string }> {
   const form = new FormData();
   form.append('email', email);
   form.append('password', password);
+  form.append('device_fingerprint_hash', deviceFingerprintHash);
   const res = await api.post('/auth/register', form);
   return res.data;
 }
@@ -158,6 +125,8 @@ export async function loginUser(email: string, password: string): Promise<LoginR
   const form = new FormData();
   form.append('email', email);
   form.append('password', password);
+  console.log("Logging in with email:", email);
+  console.log("Logging in with email:", password);
   const res = await api.post('/auth/login', form);
   return res.data;
 }

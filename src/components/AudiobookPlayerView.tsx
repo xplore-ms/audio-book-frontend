@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { getJobPages } from '../api/api';
 import AudioPlayer from './AudioPlayer';
@@ -6,6 +6,7 @@ import { PlayIcon, PauseIcon, SpinnerIcon } from './Icons';
 import type { PageSyncInfo } from '../types';
 
 interface PageAudio extends PageSyncInfo {
+  expires_at: any;
   page: number;
 }
 
@@ -18,68 +19,124 @@ interface Track {
   expires_at: number;
 }
 
-export default function AudiobookPlayerView({ mode }: { mode: 'public' | 'private' }) {
+export default function AudiobookPlayerView({
+  mode,
+}: {
+  mode: 'public' | 'private';
+}) {
   const { jobId: jobIdParam } = useParams();
-  const [showPages, setShowPages] = useState(false);
-  const [pages, setPages] = useState<PageAudio[]>([]);
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [loading, setLoading] = useState(true);
   const { state } = useLocation();
   const bookTitle = state?.title ?? 'Audiobook';
 
+  const [showPages, setShowPages] = useState(false);
+  const [pages, setPages] = useState<PageAudio[]>([]);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  const isExpired = (expiresAt: number, buffer = 30) => {
-    return Date.now() / 1000 > expiresAt - buffer;
-  };
+  const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
 
- 
+  const [skip, setSkip] = useState(0);
+  const limit = 3;
+  const [hasMore, setHasMore] = useState(true);
 
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    document.title = `${bookTitle} Page ${currentIndex + 1} • Narrio Audiobook`;
+  /* ----------------------- HELPERS ----------------------- */
 
-    return () => {
-      document.title = 'Narrio';
-    };
-  }, [bookTitle, currentIndex]);
+  const isExpired = (expiresAt: number, buffer = 30) =>
+    Date.now() / 1000 > expiresAt - buffer;
 
-  useEffect(() => {
-    if (!jobIdParam) return;
-    const path = mode === 'private' ? '/audio/pages/' : '/public/listen/';
-    getJobPages(`${path}${jobIdParam}`)
-      .then(res => {
-        const pagesArray = res.pages
-          .map((p: any) => {
-            const pageNum = parseInt(p.page.split('_')[1], 10);
-            return { page: pageNum, ...p };
-          })
-          .sort((a: any, b: any) => a.page - b.page);
+  /* ----------------------- LOAD PAGES ----------------------- */
 
-        setPages(pagesArray);
+  const loadPages = async () => {
+    if (!jobIdParam || !hasMore || isFetching) return;
 
-        const tracksArray: Track[] = pagesArray.map(p => ({
+    setIsFetching(true);
+
+    try {
+      const path = mode === 'private' ? '/audio/pages/' : '/public/listen/';
+      const res = await getJobPages(
+        `${path}${jobIdParam}?skip=${skip}&limit=${limit}`
+      );
+
+      const newPages: PageAudio[] = res.pages.map((p: any) => ({
+        page: parseInt(p.page.split('_')[1], 10),
+        ...p,
+      }));
+
+      setPages(prev => [...prev, ...newPages]);
+
+      setTracks(prev => [
+        ...prev,
+        ...newPages.map(p => ({
           title: `Page ${p.page}`,
           artist: bookTitle,
-          color: '#6366f1', // indigo-500
-          image: '/vite.svg', // default image
+          color: '#6366f1',
+          image: '/vite.svg',
           audioSrc: p.audio_url,
-          expires_at: p.expires_at
-        }));
+          expires_at: p.expires_at,
+        })),
+      ]);
 
-        setTracks(tracksArray);
-      })
-      .finally(() => setLoading(false));
+      const nextSkip = skip + limit;
+      setSkip(nextSkip);
+
+      if (nextSkip >= res.total_pages) {
+        setHasMore(false);
+      }
+
+      setLoading(false);
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  /* ----------------------- RESET ON JOB CHANGE ----------------------- */
+
+  useEffect(() => {
+    setPages([]);
+    setTracks([]);
+    setSkip(0);
+    setHasMore(true);
+    setCurrentIndex(0);
+    setIsPlaying(false);
+    setLoading(true);
   }, [jobIdParam, mode, bookTitle]);
 
-  const refreshPlaylist = async (resumeIndex?: number | null) => {
-    if (!jobIdParam || resumeIndex === null || resumeIndex === undefined) return;
+  /* ----------------------- INITIAL LOAD ----------------------- */
+
+  useEffect(() => {
+    loadPages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobIdParam]);
+
+  /* ----------------------- INFINITE SCROLL ----------------------- */
+
+  useEffect(() => {
+    if (!hasMore || !sentinelRef.current) return;
+
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        loadPages();
+      }
+    });
+
+    observer.observe(sentinelRef.current);
+
+    return () => observer.disconnect();
+  }, [hasMore, loadPages]);
+
+  /* ----------------------- AUDIO REFRESH ----------------------- */
+
+  const refreshPlaylist = async (resumeIndex?: number) => {
+    if (!jobIdParam || resumeIndex === undefined) return;
 
     const path = mode === 'private' ? '/audio/pages/' : '/public/listen/';
     const res = await getJobPages(`${path}${jobIdParam}`);
 
-    const pagesArray = res.pages
+    const pagesArray: PageAudio[] = res.pages
       .map((p: any) => ({
         page: parseInt(p.page.split('_')[1], 10),
         ...p,
@@ -94,54 +151,56 @@ export default function AudiobookPlayerView({ mode }: { mode: 'public' | 'privat
       color: '#6366f1',
       image: '/vite.svg',
       audioSrc: p.audio_url,
-      expires_at: p.expires_at
+      expires_at: p.expires_at,
     }));
 
     setTracks(tracksArray);
 
-    if (
-      resumeIndex !== undefined &&
-      resumeIndex < tracksArray.length
-    ) {
+    if (resumeIndex < tracksArray.length) {
       setCurrentIndex(resumeIndex);
       setIsPlaying(true);
     }
   };
 
   const handleAudioError = async () => {
-    console.warn('Audio expired, refreshing signed URLs…');
-
-    const resumeIndex = currentIndex;
-    await refreshPlaylist(resumeIndex);
+    await refreshPlaylist(currentIndex);
   };
 
   const playPage = async (index: number) => {
     const track = tracks[index];
+    if (!track) return;
 
     if (isExpired(track.expires_at)) {
       await refreshPlaylist(index);
     } else {
-      setCurrentIndex(index); 
+      setCurrentIndex(index);
       setIsPlaying(true);
     }
   };
 
+  /* ----------------------- EXPIRE CHECK ----------------------- */
+
   useEffect(() => {
     const interval = setInterval(() => {
       const track = tracks[currentIndex];
-      if (!track) return;
-
-      if (isExpired(track.expires_at, 60)) {
+      if (track && isExpired(track.expires_at, 60)) {
         refreshPlaylist(currentIndex);
       }
-    }, 15000); // check every 15s
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [currentIndex, tracks]);
 
+  /* ----------------------- TITLE ----------------------- */
 
-  const currentTrack = tracks[currentIndex];
-  // const isSeekable = currentTrack ? (currentTrack.audioSrc.toLowerCase().indexOf('.wav') === -1) : true;
+  useEffect(() => {
+    document.title = `${bookTitle} Page ${currentIndex + 1} • Narrio Audiobook`;
+    return () => {
+      document.title = 'Narrio';
+    };
+  }, [bookTitle, currentIndex]);
+
+  /* ----------------------- RENDER ----------------------- */
 
   if (loading) {
     return (
@@ -151,14 +210,17 @@ export default function AudiobookPlayerView({ mode }: { mode: 'public' | 'privat
     );
   }
 
+  const currentTrack = tracks[currentIndex];
+
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8 text-center">
         <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">
           {bookTitle}
         </h2>
-
-        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Select a page to begin listening</p>
+        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+          Select a page to begin listening
+        </p>
       </div>
 
       <div className="bg-slate-900 rounded-[2rem] p-8 shadow-inner border border-slate-800">
@@ -170,58 +232,55 @@ export default function AudiobookPlayerView({ mode }: { mode: 'public' | 'privat
           onIsPlayingChange={setIsPlaying}
           onError={handleAudioError}
         />
+
         {currentTrack && (
-          <div className="mt-4 flex items-center justify-between">
-            {/* <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isSeekable ? 'bg-indigo-500/20 text-indigo-400' : 'bg-amber-500/20 text-amber-400'}`}>
-              {isSeekable ? 'Seeking Supported' : 'Seeking Not Supported'}
-            </span> */}
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-              Currently Playing: {currentTrack.title}
-            </p>
-          </div>
+          <p className="mt-4 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+            Currently Playing: {currentTrack.title}
+          </p>
         )}
       </div>
 
       <div className="flex justify-center">
         <button
-          onClick={() => setShowPages(prev => !prev)}
-          className="px-6 py-2 rounded-full bg-black text-xs font-black uppercase tracking-widest
-           text-white hover:bg-slate-800 transition"
+          onClick={() => setShowPages(p => !p)}
+          className="px-6 py-2 rounded-full bg-black text-xs font-black uppercase tracking-widest text-white hover:bg-slate-800"
         >
           {showPages ? 'Hide Pages' : 'Show Pages'}
         </button>
       </div>
 
-        {showPages && (
-      <div className="space-y-3">
-        {pages.map((p, idx) => (
-          <button
-            key={p.page}
-            onClick={() => playPage(idx)}
-            className={`w-full p-5 rounded-2xl flex items-center justify-between transition-all group
-              ${idx === currentIndex ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 'bg-white hover:bg-slate-50 border border-slate-100'}
-            `}
-          >
-            <div className="flex items-center gap-4">
-              {/* <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${idx === currentIndex ? 'bg-white/20 text-slate-400' : 'bg-slate-100 text-slate-400'}`}>
-                {p.page}
-              </div> */}
-              <span className="font-black uppercase tracking-tight text-black">{p.page}</span>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <span className={`text-[8px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity ${idx === currentIndex ? 'text-white/60' : 'text-slate-300'}`}>
-                {p.audio_url.toLowerCase().endsWith('.wav') ? 'WAV Format' : 'Neural M4A'}
-              </span>
+      {showPages && (
+        <div className="space-y-3">
+          {pages.map((p, idx) => (
+            <button
+              key={p.page}
+              onClick={() => playPage(idx)}
+              className={`w-full p-5 rounded-2xl flex items-center justify-between
+                ${
+                  idx === currentIndex
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-white border border-slate-100'
+                }`}
+            >
+              <span className="font-black">{p.page}</span>
               {idx === currentIndex && isPlaying ? (
                 <PauseIcon className="w-6 h-6" />
               ) : (
-                <PlayIcon className={`w-6 h-6 ${idx === currentIndex ? 'text-black' : 'text-indigo-600'}`} />
+                <PlayIcon className="w-6 h-6 text-indigo-600" />
               )}
+            </button>
+          ))}
+
+          {hasMore && (
+            <div
+              ref={sentinelRef}
+              className="flex justify-center py-6"
+            >
+              <SpinnerIcon className="w-5 h-5 text-indigo-400" />
             </div>
-          </button>
-        ))}
-      </div>)}
+          )}
+        </div>
+      )}
     </div>
   );
 }
