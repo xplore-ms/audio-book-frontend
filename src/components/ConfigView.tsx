@@ -47,7 +47,8 @@ export default function ConfigView({ numPages, onConfirm, onLowCredits, isLoadin
       return;
     }
     if (startPage === '') {
-      setEndPage('');
+      const num = parseInt(val);
+      setEndPage(num);
       return;
     }
     const num = parseInt(val);
