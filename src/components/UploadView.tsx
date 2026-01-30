@@ -91,6 +91,9 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
             <p className="text-sm text-slate-400 font-medium">
               or drop your document here (Max {MAX_FILE_SIZE_MB}MB)
             </p>
+            <p className="text-sm text-slate-400 font-medium">
+              it cost 10 credits for any upload
+            </p>
           </div>
           <input 
             type="file" 

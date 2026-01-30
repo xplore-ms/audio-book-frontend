@@ -214,6 +214,11 @@ export async function getStatus(taskId: string): Promise<TaskStatusResponse> {
   return res.data;
 }
 
+export async function getJobProgress(jobId: string) {
+  const res = await api.get(`/job/${jobId}/progress`);
+  return res.data;
+}
+
 // --------------------
 // Audio & Library
 // --------------------
