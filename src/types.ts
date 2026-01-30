@@ -60,6 +60,7 @@ export interface Audiobook {
 }
 
 export interface UploadResponse {
+  status: string;
   job_id: string;
   pages: number;
   title?: string;

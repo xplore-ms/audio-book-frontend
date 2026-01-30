@@ -9,10 +9,7 @@ import { useBackend } from '../context/BackendContext';
 import { SpinnerIcon, UploadIcon, FileIcon } from './Icons';
 import type { AppStep, UploadResponse } from '../types';
 
-interface ActiveTask {
-  jobId: string;
-  taskIds: string[];
-}
+
 
 function InsufficientCreditsModal({ required, current, onClose, onBuy }: { required: number, current: number, onClose: () => void, onBuy: () => void }) {
   return (
@@ -46,12 +43,10 @@ export default function ConfigureJobView() {
 
   const [step, setStep] = useState<AppStep>("CONFIG");
   const [jobData, setJobData] = useState<UploadResponse | null>(null);
-  const [taskIds, setTaskIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [showLowCredits, setShowLowCredits] = useState<number | null>(null);
-  const [globalLock, setGlobalLock] = useState<ActiveTask | null>(null);
   
   const [isPdfMissing, setIsPdfMissing] = useState(false);
   const [recoveryFile, setRecoveryFile] = useState<File | null>(null);
@@ -61,24 +56,6 @@ export default function ConfigureJobView() {
   const [tempTitle, setTempTitle] = useState("");
 
 
-  const checkActiveTasks = () => {
-    const saved = localStorage.getItem('narrio_active_processing');
-    if (saved) {
-      try {
-        const active = JSON.parse(saved) as ActiveTask;
-        if (active.jobId === jobId) {
-          setTaskIds(active.taskIds);
-          setStep("PROCESSING");
-        } else {
-          setGlobalLock(active);
-        }
-      } catch (e) {
-        localStorage.removeItem('narrio_active_processing');
-      }
-    } else {
-      setGlobalLock(null);
-    }
-  };
 
   const fetchMetadata = async () => {
     if (!jobId) return;
@@ -89,9 +66,11 @@ export default function ConfigureJobView() {
       setJobData(data);
       setTempTitle(data.title || "");
       
+
       // Check if we should be in processing mode after metadata is loaded
-      checkActiveTasks();
-      
+      if (data.status !== "done") {
+        setStep("PROCESSING")
+      }
     } catch (e: any) {
       if (e.response?.status === 404) {
         setError("Document session not found.");
@@ -125,6 +104,7 @@ export default function ConfigureJobView() {
       await reuploadPdf(jobId, recoveryFile);
       setIsPdfMissing(false);
       await fetchMetadata();
+      await refreshUser()
       setStep("CONFIG");
     } catch (err: any) {
       alert(err.response?.data?.detail || "Re-upload failed. Please try again.");
@@ -137,10 +117,6 @@ export default function ConfigureJobView() {
     if (!jobId || !jobData) return;
     
     // Global lock check (redundant but safe)
-    if (globalLock) {
-      alert(`Another document (${globalLock.jobId.slice(0,8)}) is currently being processed. Please wait for it to finish.`);
-      return;
-    }
 
     setIsLoading(true);
     setError(null);
@@ -154,14 +130,9 @@ export default function ConfigureJobView() {
         setStep("SUCCESS");
       } else {
         const finalEnd = endPage || Math.min(startPage + 3, jobData.pages);
-        const startRes = await startJob(jobId, startPage, finalEnd);
+        await startJob(jobId, startPage, finalEnd);
         await refreshUser(); 
         
-        // Save to persistent storage for lock/recovery
-        const active: ActiveTask = { jobId, taskIds: startRes.task_ids };
-        localStorage.setItem('narrio_active_processing', JSON.stringify(active));
-        
-        setTaskIds(startRes.task_ids);
         setIsReviewMode(false);
         setStep("PROCESSING");
       }
@@ -188,34 +159,7 @@ export default function ConfigureJobView() {
   if (!jobId) return null;
 
   // Global Processing Lock View
-  if (globalLock && step === "CONFIG") {
-    return (
-      <div className="max-w-xl w-full mx-auto bg-white rounded-[3rem] shadow-2xl p-12 border border-slate-100 text-center animate-fade-in-up">
-        <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-8 relative">
-           <SpinnerIcon className="w-8 h-8 text-indigo-600" />
-           <div className="absolute inset-0 bg-indigo-600/10 animate-ping rounded-3xl" />
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 mb-4 uppercase tracking-tight">Processing in Progress</h2>
-        <p className="text-slate-500 mb-10 leading-relaxed font-medium">
-          You currently have another document being processed. To maintain quality, we process one session at a time.
-        </p>
-        <div className="flex flex-col gap-4">
-          <button 
-            onClick={() => navigate(`/configure/${globalLock.jobId}`)}
-            className="w-full py-5 bg-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl transition-all"
-          >
-            Go to Active Job
-          </button>
-          <button 
-            onClick={() => navigate('/my-library')}
-            className="w-full py-5 bg-slate-50 text-slate-400 font-bold rounded-2xl hover:bg-slate-100 transition-all"
-          >
-            Back to Library
-          </button>
-        </div>
-      </div>
-    );
-  }
+ 
 
   if (isLoading && step === "CONFIG") {
     return (
@@ -343,7 +287,6 @@ export default function ConfigureJobView() {
 
       {step === "PROCESSING" && (
         <ProcessingView 
-          taskIds={taskIds} 
           jobId={jobId} 
           onComplete={handleProcessingComplete} 
         />

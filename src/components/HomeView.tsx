@@ -6,7 +6,7 @@ import { useUser } from '../context/UserContext';
 import { useBackend } from '../context/BackendContext';
 
 export default function HomeView() {
-  const { user } = useUser();
+  const { user, refreshUser } = useUser();
   const { ensureReady } = useBackend();
   const navigate = useNavigate();
   
@@ -25,6 +25,7 @@ export default function HomeView() {
     try {
       await ensureReady();
       const uploadRes = await uploadPdf(file, title);
+      await refreshUser()
       // Navigate to standalone configure page
       navigate(`/configure/${uploadRes.job_id}`);
     } catch (e: any) {
