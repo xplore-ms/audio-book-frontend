@@ -1,19 +1,13 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import "./index.css";
-import { UserProvider } from "./context/UserContext.tsx";
-import { BackendProvider } from "./context/BackendContext.tsx";
+import { Providers } from "./app/providers/Providers";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <UserProvider>
-      <BackendProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </BackendProvider>
-    </UserProvider>
+    <Providers>
+      <App />
+    </Providers>
   </React.StrictMode>
 );

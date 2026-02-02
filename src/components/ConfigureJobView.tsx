@@ -3,11 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import ConfigView from './ConfigView';
 import ProcessingView from './ProcessingView';
 import SuccessView from './SuccessView';
-import { getJobInfo, startJob, requestFullReview, updateJobTitle, reuploadPdf } from '../api/api';
 import { useUser } from '../context/UserContext';
+import { usePdfJob } from '../features/pdf/hooks/usePdfJob';
+import { useStartJob, useRequestFullReview, useUpdateJobTitle, useReuploadPdf } from '../features/pdf/hooks/mutations';
 import { useBackend } from '../context/BackendContext';
 import { SpinnerIcon, UploadIcon, FileIcon } from './Icons';
-import type { AppStep, UploadResponse } from '../types';
+import type { AppStep } from '../types';
 
 
 
@@ -42,7 +43,6 @@ export default function ConfigureJobView() {
   const { ensureReady } = useBackend();
 
   const [step, setStep] = useState<AppStep>("CONFIG");
-  const [jobData, setJobData] = useState<UploadResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isReviewMode, setIsReviewMode] = useState(false);
@@ -57,64 +57,53 @@ export default function ConfigureJobView() {
 
 
 
-  const fetchMetadata = async () => {
-    if (!jobId) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await getJobInfo(jobId);
-      setJobData(data);
-      setTempTitle(data.title || "");
-      
-
-      // Check if we should be in processing mode after metadata is loaded
-      if (data.status !== "done") {
-        setStep("PROCESSING")
-      }
-    } catch (e: any) {
-      if (e.response?.status === 404) {
-        setError("Document session not found.");
-      } else {
-        setError("Failed to load document metadata.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Use React Query hooks for job metadata and progress
+  const pdfJobQuery = usePdfJob(jobId);
 
   useEffect(() => {
-    fetchMetadata();
-  }, [jobId]);
+    setIsLoading(pdfJobQuery.isLoading);
+    if (pdfJobQuery.data) {
+      setTempTitle(pdfJobQuery.data.title || '');
+      if (pdfJobQuery.data.status !== 'done') setStep('PROCESSING');
+    }
+    if (pdfJobQuery.error) {
+      const e: any = pdfJobQuery.error;
+      if (e?.response?.status === 404) setError('Document session not found.');
+      else setError('Failed to load document metadata.');
+    }
+  }, [pdfJobQuery.data, pdfJobQuery.isLoading, pdfJobQuery.error]);
 
+  const updateTitleMutation = useUpdateJobTitle();
   const handleUpdateTitle = async () => {
     if (!jobId || !tempTitle.trim()) return;
     try {
-      await updateJobTitle(jobId, tempTitle.trim());
-      setJobData(prev => prev ? { ...prev, title: tempTitle.trim() } : null);
+      await updateTitleMutation.mutateAsync({ jobId, title: tempTitle.trim() });
       setIsEditingTitle(false);
     } catch (err) {
-      alert("Failed to update title");
+      alert('Failed to update title');
     }
   };
 
+  const reuploadMutation = useReuploadPdf();
   const handleReupload = async () => {
     if (!jobId || !recoveryFile) return;
     setIsLoading(true);
     try {
-      await reuploadPdf(jobId, recoveryFile);
+      await reuploadMutation.mutateAsync({ jobId, file: recoveryFile });
       setIsPdfMissing(false);
-      await fetchMetadata();
-      await refreshUser()
-      setStep("CONFIG");
+      await refreshUser();
+      setStep('CONFIG');
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Re-upload failed. Please try again.");
+      alert(err.response?.data?.detail || 'Re-upload failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
+  const startJobMutation = useStartJob();
+  const requestFullReviewMutation = useRequestFullReview();
 
   const handleConfigConfirm = async (startPage: number, isFull: boolean, endPage?: number) => {
-    if (!jobId || !jobData) return;
+    if (!jobId) return;
     
     // Global lock check (redundant but safe)
 
@@ -122,29 +111,28 @@ export default function ConfigureJobView() {
     setError(null);
     try {
       await ensureReady();
-      
+
       if (isFull) {
-        await requestFullReview(jobId);
-        await refreshUser(); 
+        await requestFullReviewMutation.mutateAsync(jobId);
+        await refreshUser();
         setIsReviewMode(true);
-        setStep("SUCCESS");
+        setStep('SUCCESS');
       } else {
-        const finalEnd = endPage || Math.min(startPage + 3, jobData.pages);
-        await startJob(jobId, startPage, finalEnd);
-        await refreshUser(); 
-        
+        const finalEnd = endPage || Math.min(startPage + 3, (pdfJobQuery.data as any)?.pages || 1);
+        await startJobMutation.mutateAsync({ jobId, start: startPage, end: finalEnd });
+        await refreshUser();
         setIsReviewMode(false);
-        setStep("PROCESSING");
+        setStep('PROCESSING');
       }
     } catch (e: any) {
-      const errorMsg = e.response?.data?.detail || "";
-      if (errorMsg.includes("PDF not found") || errorMsg.includes("expired")) {
+      const errorMsg = e.response?.data?.detail || '';
+      if (errorMsg.includes('PDF not found') || errorMsg.includes('expired')) {
         setIsPdfMissing(true);
-      } else if (errorMsg.includes("already requested")) {
+      } else if (errorMsg.includes('already requested')) {
         setIsReviewMode(true);
-        setStep("SUCCESS");
+        setStep('SUCCESS');
       } else {
-        setError(errorMsg || "Failed to process your request.");
+        setError(errorMsg || 'Failed to process your request.');
       }
     } finally {
       setIsLoading(false);
@@ -235,7 +223,7 @@ export default function ConfigureJobView() {
 
   return (
     <div className="w-full flex flex-col items-center py-10">
-      {jobData && step === "CONFIG" && (
+      {pdfJobQuery.data && step === "CONFIG" && (
         <div className="text-center mb-10 max-w-xl w-full px-4 group">
           {isEditingTitle ? (
             <div className="flex gap-2 items-center">
@@ -248,7 +236,7 @@ export default function ConfigureJobView() {
                <button onClick={handleUpdateTitle} className="bg-indigo-600 text-white p-4 rounded-2xl hover:bg-indigo-700 transition-all">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                </button>
-               <button onClick={() => { setIsEditingTitle(false); setTempTitle(jobData.title || ""); }} className="bg-slate-50 text-slate-400 p-4 rounded-2xl hover:bg-slate-100 transition-all">
+               <button onClick={() => { setIsEditingTitle(false); setTempTitle((pdfJobQuery.data as any)?.title || ""); }} className="bg-slate-50 text-slate-400 p-4 rounded-2xl hover:bg-slate-100 transition-all">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                </button>
             </div>
@@ -259,7 +247,7 @@ export default function ConfigureJobView() {
             >
               <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] mb-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to Edit Title</p>
               <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none uppercase">
-                {jobData.title || "Untitled Document"}
+                {(pdfJobQuery.data as any)?.title || "Untitled Document"}
               </h1>
               <div className="w-12 h-1.5 bg-indigo-100 rounded-full mt-4" />
             </div>
@@ -276,9 +264,9 @@ export default function ConfigureJobView() {
         />
       )}
 
-      {step === "CONFIG" && jobData && (
+      {step === "CONFIG" && pdfJobQuery.data && (
         <ConfigView 
-          numPages={jobData.pages} 
+          numPages={(pdfJobQuery.data as any).pages} 
           onConfirm={handleConfigConfirm} 
           onLowCredits={(req) => setShowLowCredits(req)}
           isLoading={isLoading} 

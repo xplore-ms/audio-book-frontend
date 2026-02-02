@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getJobSync, getExternalSyncData, API_BASE_URL } from '../api/api';
+import { getJobSync, getExternalSyncData } from '../api/audio.api';
+import { API_BASE_URL } from '../api/client';
 import { SpinnerIcon, DownloadIcon } from './Icons';
 
 interface Segment {

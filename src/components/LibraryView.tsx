@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchPublicLibrary, API_BASE_URL } from '../api/api';
+import { usePublicLibrary } from '../features/audio/hooks/usePublicLibrary';
+import { API_BASE_URL } from '../api/client';
 import { useUser } from '../context/UserContext';
 import type { Audiobook } from '../types';
 import { SpinnerIcon, PlayIcon, PauseIcon, DownloadIcon } from './Icons';
@@ -43,16 +44,18 @@ export default function LibraryView() {
   
   const token = localStorage.getItem("narrio_token");
 
+  const publicLibraryQuery = usePublicLibrary();
+
   useEffect(() => {
-    fetchPublicLibrary().then(data => {
-      setBooks(data);
+    if (publicLibraryQuery.data) {
+      setBooks(publicLibraryQuery.data);
       setLoading(false);
-    });
-    
+    }
+
     return () => {
       if (audioRef.current) audioRef.current.pause();
     };
-  }, []);
+  }, [publicLibraryQuery.data]);
 
   const formatDuration = (seconds: number) => {
     if (typeof seconds !== 'number' || isNaN(seconds) || !isFinite(seconds)) return null;

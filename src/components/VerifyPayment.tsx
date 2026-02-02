@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { verifyPayment } from '../api/api';
+import { verifyPayment } from '../api/payments.api';
 import { useUser } from '../context/UserContext';
 import { SpinnerIcon } from './Icons';
 

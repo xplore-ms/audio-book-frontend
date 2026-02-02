@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { loginUser, registerUser, getUserInfo } from '../api/api';
+import { loginUser, registerUser, getUserInfo } from '../api/auth.api';
 import type { User, LoginResponse } from '../types';
+import { useAuthStore } from '../app/store/authStore';
 
 interface UserContextType {
   user: User | null;
@@ -15,31 +16,27 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const setTokens = useAuthStore((state: any) => state.setTokens);
+  const setUser = useAuthStore((state: any) => state.setUser);
+  const clear = useAuthStore((state: any) => state.clear);
+  const token = useAuthStore((state: any) => state.token);
 
-  const token = localStorage.getItem('narrio_token');
   const isAuthenticated = !!token;
 
-  /** 🔁 Restore session on app load */
   useEffect(() => {
     const restoreSession = async () => {
-      if (!token) {
+      const storedToken = localStorage.getItem('narrio_token');
+      if (!storedToken) {
         setAuthChecked(true);
         return;
       }
 
       try {
         const data = await getUserInfo();
-        setUser({
-          id: data.email,
-          email: data.email,
-          credits: data.credits,
-          isLoggedIn: true,
-        });
+        setUser({ id: data.email, email: data.email, credits: data.credits, isLoggedIn: true });
       } catch {
-        localStorage.clear();
-        setUser(null);
+        clear();
       } finally {
         setAuthChecked(true);
       }
@@ -50,16 +47,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const data: LoginResponse = await loginUser(email, password);
-
-    localStorage.setItem('narrio_token', data.access_token);
-    localStorage.setItem('narrio_refresh_token', data.refresh_token);
-
-    setUser({
-      id: email,
-      email,
-      credits: data.credits,
-      isLoggedIn: true,
-    });
+    setTokens(data.access_token, data.refresh_token);
+    setUser({ id: email, email, credits: data.credits, isLoggedIn: true, token: data.access_token, refreshToken: data.refresh_token });
   };
 
   const register = async (email: string, password: string, deviceFingerprintHash: string) => {
@@ -67,28 +56,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.clear();
-    setUser(null);
+    clear();
     window.location.href = '/signin';
   };
 
   const refreshUser = async () => {
-    if (!token) return;
+    const currentToken = localStorage.getItem('narrio_token');
+    if (!currentToken) return;
     const data = await getUserInfo();
-    setUser(prev => prev ? { ...prev, credits: data.credits } : prev);
+    setUser((prev: any) => prev ? { ...prev, credits: data.credits } : prev);
   };
 
   return (
     <UserContext.Provider
-      value={{
-        user,
-        authChecked,
-        isAuthenticated,
-        login,
-        register,
-        logout,
-        refreshUser,
-      }}
+      value={{ user: useAuthStore.getState().user, authChecked, isAuthenticated, login, register, logout, refreshUser }}
     >
       {children}
     </UserContext.Provider>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getJobProgress } from "../api/api";
+import { getJobProgress } from "../api/pdfJobs.api";
 import { SpinnerIcon } from "./Icons";
 
 interface ProcessingViewProps {
