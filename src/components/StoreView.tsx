@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { initiatePayment, getPriceQuote } from '../api/api';
+import { initiatePayment, getPriceQuote } from '../api/payments.api';
 import { SpinnerIcon } from './Icons';
 import type { PriceQuote } from '../types';
 

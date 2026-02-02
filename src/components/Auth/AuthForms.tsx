@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useUser } from '../../context/UserContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SpinnerIcon, EyeIcon, EyeSlashIcon } from '../Icons';
-import { verifyEmailCode, forgotPassword, resetPassword } from '../../api/api';
+import { verifyEmailCode, forgotPassword, resetPassword } from '../../api/auth.api';
 
 export function SignIn() {
   const [email, setEmail] = useState('');

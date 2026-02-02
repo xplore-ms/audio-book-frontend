@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation  } from 'react-router-dom';
-import { getJobPages } from '../api/api';
+import { useJobPages } from '../features/audio/hooks/useJobPages';
 import { PlayIcon, PauseIcon, SpinnerIcon } from './Icons';
 import type { PageSyncInfo } from '../types';
 
@@ -29,49 +29,37 @@ export default function AudiobookPagesView({ mode }: { mode: 'public' | 'private
   const currentTrack = currentIndex !== null ? pages[currentIndex] : null;
   const isSeekable = currentTrack ? (currentTrack.format !== 'wav' && !currentTrack.audio_url.toLowerCase().endsWith('.wav')) : true;
 
+  const pagesQuery = useJobPages(jobIdParam, mode);
+
   useEffect(() => {
-    if (!jobIdParam) return;
-    const path = mode === 'private' ? '/audio/pages/' : '/public/listen/';
-    getJobPages(`${path}${jobIdParam}`)
-        .then(res => {
-        const pagesArray = res.pages
-            .map((p: any) => {
-            const pageNum = parseInt(p.page.split('_')[1], 10);
-            return { page: pageNum, ...p };
-            })
-            .sort((a: any, b: any) => a.page - b.page);
+    if (!pagesQuery.data) return;
+    const pagesArray = pagesQuery.data.pages
+      .map((p: any) => ({ page: parseInt(p.page.split('_')[1], 10), ...p }))
+      .sort((a: any, b: any) => a.page - b.page);
 
-        setPages(pagesArray);
-        })
-        .finally(() => setLoading(false));
-    }, [jobIdParam, mode]);
+    setPages(pagesArray);
+    setLoading(false);
+  }, [pagesQuery.data]);
 
+  const refreshPlaylist = async (resumeIndex?: number | null) => {
+    if (!jobIdParam || resumeIndex === null || resumeIndex === undefined) return;
+    await pagesQuery.refetch();
+    const pagesArray = pagesQuery.data?.pages
+      .map((p: any) => ({ page: parseInt(p.page.split('_')[1], 10), ...p }))
+      .sort((a: any, b: any) => a.page - b.page) || [];
 
-    const refreshPlaylist = async (resumeIndex?: number | null) => {
-        if (!jobIdParam || resumeIndex === null || resumeIndex === undefined) return;
+    setPages(pagesArray);
 
-        const path = mode === 'private' ? '/audio/pages/' : '/public/listen/';
-        const res = await getJobPages(`${path}${jobIdParam}`);
-
-        const pagesArray = res.pages
-            .map((p: any) => ({
-            page: parseInt(p.page.split('_')[1], 10),
-            ...p,
-            }))
-            .sort((a: any, b: any) => a.page - b.page);
-
-        setPages(pagesArray);
-
-        if (
-            resumeIndex !== undefined &&
-            audioRef.current &&
-            pagesArray[resumeIndex]
-        ) {
-            audioRef.current.src = pagesArray[resumeIndex].audio_url;
-            audioRef.current.play();
-            setIsPlaying(true);
-        }
-        };
+    if (
+      resumeIndex !== undefined &&
+      audioRef.current &&
+      pagesArray[resumeIndex]
+    ) {
+      audioRef.current.src = pagesArray[resumeIndex].audio_url;
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
 const handleAudioError = async () => {
   console.warn('Audio expired, refreshing signed URLs…');
 

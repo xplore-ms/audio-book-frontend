@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { wakeBackend, checkBackendReady } from '../api/api';
+import { wakeBackend, checkBackendReady } from '../api/health.api';
 import { SpinnerIcon } from '../components/Icons';
 
 interface BackendContextType {

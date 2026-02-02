@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UploadView from './UploadView';
-import { uploadPdf } from '../api/api';
+import { useUploadPdf } from '../features/pdf/hooks/mutations';
 import { useUser } from '../context/UserContext';
 import { useBackend } from '../context/BackendContext';
 
@@ -12,6 +12,8 @@ export default function HomeView() {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const uploadMutation = useUploadPdf();
 
   const handleUpload = async (file: File, title: string) => {
     if (!user) {
@@ -24,8 +26,8 @@ export default function HomeView() {
 
     try {
       await ensureReady();
-      const uploadRes = await uploadPdf(file, title);
-      await refreshUser()
+      const uploadRes = await uploadMutation.mutateAsync({ file, title });
+      await refreshUser();
       // Navigate to standalone configure page
       navigate(`/configure/${uploadRes.job_id}`);
     } catch (e: any) {

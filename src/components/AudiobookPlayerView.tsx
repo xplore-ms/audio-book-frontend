@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
-import { getJobPages } from '../api/api';
+import { getJobPages } from '../api/audio.api';
 import AudioPlayer from './AudioPlayer';
 import { PlayIcon, PauseIcon, SpinnerIcon } from './Icons';
 import type { PageSyncInfo } from '../types';
 
 interface PageAudio extends PageSyncInfo {
+  download_url: any;
   expires_at: any;
   page: number;
 }
@@ -18,6 +19,22 @@ interface Track {
   audioSrc: string;
   expires_at: number;
 }
+
+export function DownloadIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M12 3v12m0 0l4-4m-4 4l-4-4" />
+      <path d="M5 21h14" />
+    </svg>
+  );
+}
+
 
 export default function AudiobookPlayerView({
   mode,
@@ -40,7 +57,7 @@ export default function AudiobookPlayerView({
   const [skip, setSkip] = useState(0);
   const limit = 3;
   const [hasMore, setHasMore] = useState(true);
-
+  const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   /* ----------------------- HELPERS ----------------------- */
@@ -50,8 +67,26 @@ export default function AudiobookPlayerView({
 
   /* ----------------------- LOAD PAGES ----------------------- */
 
-  const loadPages = async () => {
-    if (!jobIdParam || !hasMore || isFetching) return;
+  const forceDownload = async (url: string, filename: string) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Download failed');
+
+  const blob = await res.blob();
+  const blobUrl = window.URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(blobUrl);
+};
+
+
+  const loadPages = useCallback(async () => {
+    if (!jobIdParam || !hasMore || isFetching || error) return;
 
     setIsFetching(true);
 
@@ -62,12 +97,11 @@ export default function AudiobookPlayerView({
       );
 
       const newPages: PageAudio[] = res.pages.map((p: any) => ({
-        page: parseInt(p.page.split('_')[1], 10),
+        page: Number(p.page.split('_')[1]),
         ...p,
       }));
 
       setPages(prev => [...prev, ...newPages]);
-
       setTracks(prev => [
         ...prev,
         ...newPages.map(p => ({
@@ -88,10 +122,19 @@ export default function AudiobookPlayerView({
       }
 
       setLoading(false);
+    } catch (err: any) {
+      if (err?.response?.status === 403) {
+        setError('Access denied');
+      } else {
+        setError('An error has occurred');
+      }
+      setLoading(false);
+      setHasMore(false);
     } finally {
       setIsFetching(false);
     }
-  };
+  }, [jobIdParam, hasMore, isFetching, skip, limit, mode, bookTitle, error]);
+
 
   /* ----------------------- RESET ON JOB CHANGE ----------------------- */
 
@@ -210,6 +253,20 @@ export default function AudiobookPlayerView({
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-24 flex flex-col items-center text-center">
+        <h2 className="text-xl font-black text-slate-900 mb-2 uppercase">
+          {error}
+        </h2>
+        <p className="text-sm text-slate-400">
+          You don’t have permission to access this audiobook.
+        </p>
+      </div>
+    );
+  }
+
+
   const currentTrack = tracks[currentIndex];
 
   return (
@@ -268,7 +325,37 @@ export default function AudiobookPlayerView({
               ) : (
                 <PlayIcon className="w-6 h-6 text-indigo-600" />
               )}
+              {p.download_url && (
+                <button
+                  onClick={async e => {
+                    e.stopPropagation();
+                    try {
+                      await forceDownload(
+                        p.download_url,
+                        `${bookTitle}_page_${p.page}.mp3`
+                      );
+                    } catch (err) {
+                      alert('Download failed. Please try again.');
+                    }
+                  }}
+                  className={`p-2 rounded-full transition
+                    ${
+                      idx === currentIndex
+                        ? 'hover:bg-indigo-500'
+                        : 'hover:bg-slate-100'
+                    }`}
+                  title="Download page audio"
+                >
+                  <DownloadIcon
+                    className={`w-5 h-5 ${
+                      idx === currentIndex ? 'text-white' : 'text-slate-600'
+                    }`}
+                  />
+                </button>
+              )}
+
             </button>
+            
           ))}
 
           {hasMore && (

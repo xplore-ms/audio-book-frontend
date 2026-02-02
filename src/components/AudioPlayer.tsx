@@ -172,8 +172,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
       <div className="track-info">
         <img className="artwork" src={Image} alt={`${title} artwork`} />
 
-        <h2 className="title">{title}</h2>
-        <h3 className="artist">{artist}</h3>
+        <h2 className="title text-white">{title}</h2>
+        <h3 className="artist text-white">{artist}</h3>
 
         <AudioControls
           isPlaying={isPlaying}

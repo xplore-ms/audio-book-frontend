@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchPublicLibrary } from '../api/api';
+import { usePublicLibrary } from '../features/audio/hooks/usePublicLibrary';
 import type { Audiobook } from '../types';
 import { SpinnerIcon, FileIcon } from './Icons';
 
@@ -29,19 +29,23 @@ import { SpinnerIcon, FileIcon } from './Icons';
 //   );
 // }
 
-export default function LibraryView() {
+export default function LibraryViewNew() {
   const [books, setBooks] = useState<Audiobook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const publicLibraryQuery = usePublicLibrary();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchPublicLibrary().then(data => setBooks(data))
-      .catch(() => setError('Failed to load your library.'))
-      .finally(() => setLoading(false));
-    
-  }, []);
+    if (publicLibraryQuery.data) {
+      setBooks(publicLibraryQuery.data);
+      setLoading(false);
+    }
+  }, [publicLibraryQuery.data]);
+
+  useEffect(() => {
+    if (publicLibraryQuery.error) setError('Failed to load public library.');
+  }, [publicLibraryQuery.error]);
 
   if (loading)
       return (
