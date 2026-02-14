@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { initiatePayment, getPriceQuote } from '../api/payments.api';
-import { SpinnerIcon } from './Icons';
+import { SpinnerIcon } from '../components/Icons';
 import type { PriceQuote } from '../types';
 
 export default function StoreView() {

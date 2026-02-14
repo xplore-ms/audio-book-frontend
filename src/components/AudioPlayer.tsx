@@ -3,6 +3,7 @@ import AudioControls from "./AudioControl";
 import Image from "../assets/narrioai.png";
 import Backdrop from "./Backdrop";
 import "./styles.css";
+import Hls from "hls.js";
 
 interface Track {
   title: string;
@@ -31,18 +32,22 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const [trackIndex, setTrackIndex] = useState<number>(initialTrackIndex);
   const [trackProgress, setTrackProgress] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(initialIsPlaying);
+  const [duration, setDuration] = useState<number>(0);
 
-  const audioRef = useRef<HTMLAudioElement>(new Audio(tracks[initialTrackIndex]?.audioSrc));
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const intervalRef = useRef<number | null>(null);
   const isReady = useRef<boolean>(false);
   const hasPreloadedNext = useRef<boolean>(false);
 
   const { title, artist, color, audioSrc } = tracks[trackIndex];
-  const { duration } = audioRef.current;
 
   /* ------------------ helpers ------------------ */
 
   const preloadAudio = (src: string) => {
+    // Preloading next track - complex with HLS, simple with Audio
+    // For now, only preload if it's not HLS or if we want to implement HLS preloading
+    if (src.includes('.m3u8')) return; // Skip preloading for HLS for now to avoid complexity
     const audio = new Audio();
     audio.preload = "auto";
     audio.src = src;
@@ -52,10 +57,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     intervalRef.current = window.setInterval(() => {
-      if (audioRef.current.ended) {
+      if (audioRef.current?.ended) {
         toNextTrack();
-      } else {
+      } else if (audioRef.current) {
         setTrackProgress(audioRef.current.currentTime);
+        // Sync duration if needed
+        if (audioRef.current.duration && !isNaN(audioRef.current.duration)) {
+          setDuration(audioRef.current.duration);
+        }
       }
     }, 1000);
   };
@@ -71,29 +80,107 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   }, [initialIsPlaying]);
 
   useEffect(() => {
-    if (isPlaying) {
-      audioRef.current.play();
-      startTimer();
-    } else {
-      audioRef.current.pause();
+    if (audioRef.current) {
+      if (isPlaying) {
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.error("Playback failed", error);
+          });
+        }
+        startTimer();
+      } else {
+        audioRef.current.pause();
+      }
     }
   }, [isPlaying]);
 
+  // Cleanup effect
   useEffect(() => {
-    audioRef.current.pause();
-    audioRef.current = new Audio(audioSrc);
-    audioRef.current.addEventListener("error", () => onError?.());
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    // Cleanup previous hls/audio
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      // Remove old listeners to avoid memory leaks if we were reusing
+      // But here we are creating a new Audio instance usually.
+      // Actually, let's create a new one to be clean.
+    }
+
+    const newAudio = new Audio();
+    audioRef.current = newAudio;
+
+    // Add error listener
+    newAudio.addEventListener("error", (e) => {
+      console.error("Audio error", e);
+      onError?.();
+    });
+
+    // Handle Metadata loaded to set duration
+    newAudio.addEventListener("loadedmetadata", () => {
+      setDuration(newAudio.duration);
+    });
 
     setTrackProgress(0);
     hasPreloadedNext.current = false;
 
+    const isHls = audioSrc.includes('.m3u8');
+
+    if (isHls && Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(audioSrc);
+      hls.attachMedia(newAudio);
+      hlsRef.current = hls;
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setDuration(newAudio.duration);
+        if (isReady.current) {
+          newAudio.play().catch(e => console.error("Play error", e));
+          setIsPlaying(true);
+          startTimer();
+        }
+      });
+    } else if (newAudio.canPlayType('application/vnd.apple.mpegurl') && isHls) {
+      // Native HLS support (Safari)
+      newAudio.src = audioSrc;
+      newAudio.addEventListener('loadedmetadata', () => {
+        setDuration(newAudio.duration);
+      });
+    } else {
+      // Normal playback
+      newAudio.src = audioSrc;
+    }
+
+    // Attempt to play if ready
     if (isReady.current) {
-      audioRef.current.play();
-      setIsPlaying(true);
-      startTimer();
+      // For non-HLS or native HLS, we need to play explicitly if not handled by manifest parsed
+      // Or if Hls.isSupported() is false (native fallback)
+      if (!hlsRef.current || !Hls.isSupported()) {
+        newAudio.play().catch(e => console.error("Play error", e));
+        setIsPlaying(true);
+        startTimer();
+      }
     } else {
       isReady.current = true;
     }
+
   }, [trackIndex, audioSrc]);
 
   /* ------------------ 🔥 PRELOAD NEXT TRACK ------------------ */
@@ -125,8 +212,10 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
   const onScrub = (value: number) => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-    audioRef.current.currentTime = value;
-    setTrackProgress(value);
+    if (audioRef.current) {
+      audioRef.current.currentTime = value;
+      setTrackProgress(value);
+    }
   };
 
   const onScrubEnd = () => {
@@ -145,13 +234,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     setTrackIndex(newIndex);
     onTrackIndexChange?.(newIndex);
   };
-
-  useEffect(() => {
-    return () => {
-      audioRef.current.pause();
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
 
   const currentPercentage = duration
     ? `${(trackProgress / duration) * 100}%`

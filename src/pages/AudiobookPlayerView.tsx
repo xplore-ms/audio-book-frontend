@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
-import { getJobPages } from '../api/audio.api';
-import AudioPlayer from './AudioPlayer';
-import { PlayIcon, PauseIcon, SpinnerIcon } from './Icons';
+import { useJobPages } from '../features/audio/hooks/useJobPages';
+import AudioPlayer from '../components/AudioPlayer';
+import { PlayIcon, PauseIcon, SpinnerIcon } from '../components/Icons';
 import type { PageSyncInfo } from '../types';
 
 interface PageAudio extends PageSyncInfo {
@@ -52,20 +52,14 @@ export default function AudiobookPlayerView({
   const [isPlaying, setIsPlaying] = useState(false);
 
   const [loading, setLoading] = useState(true);
-  const [isFetching, setIsFetching] = useState(false);
-
-  const [skip, setSkip] = useState(0);
-  const limit = 3;
-  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   /* ----------------------- HELPERS ----------------------- */
 
   const isExpired = (expiresAt: number, buffer = 30) =>
     Date.now() / 1000 > expiresAt - buffer;
 
-  /* ----------------------- LOAD PAGES ----------------------- */
+  /* ----------------------- LOAD PAGES / HELPERS ----------------------- */
 
   const forceDownload = async (url: string, filename: string) => {
   const res = await fetch(url);
@@ -85,55 +79,8 @@ export default function AudiobookPlayerView({
 };
 
 
-  const loadPages = useCallback(async () => {
-    if (!jobIdParam || !hasMore || isFetching || error) return;
-
-    setIsFetching(true);
-
-    try {
-      const path = mode === 'private' ? '/audio/pages/' : '/public/listen/';
-      const res = await getJobPages(
-        `${path}${jobIdParam}?skip=${skip}&limit=${limit}`
-      );
-
-      const newPages: PageAudio[] = res.pages.map((p: any) => ({
-        page: Number(p.page.split('_')[1]),
-        ...p,
-      }));
-
-      setPages(prev => [...prev, ...newPages]);
-      setTracks(prev => [
-        ...prev,
-        ...newPages.map(p => ({
-          title: `Page ${p.page}`,
-          artist: bookTitle,
-          color: '#6366f1',
-          image: '/vite.svg',
-          audioSrc: p.audio_url,
-          expires_at: p.expires_at,
-        })),
-      ]);
-
-      const nextSkip = skip + limit;
-      setSkip(nextSkip);
-
-      if (nextSkip >= res.total_pages) {
-        setHasMore(false);
-      }
-
-      setLoading(false);
-    } catch (err: any) {
-      if (err?.response?.status === 403) {
-        setError('Access denied');
-      } else {
-        setError('An error has occurred');
-      }
-      setLoading(false);
-      setHasMore(false);
-    } finally {
-      setIsFetching(false);
-    }
-  }, [jobIdParam, hasMore, isFetching, skip, limit, mode, bookTitle, error]);
+  // Use cached hook to fetch all pages for this job
+  const { data: pagesRes, refetch } = useJobPages(jobIdParam, mode);
 
 
   /* ----------------------- RESET ON JOB CHANGE ----------------------- */
@@ -141,67 +88,67 @@ export default function AudiobookPlayerView({
   useEffect(() => {
     setPages([]);
     setTracks([]);
-    setSkip(0);
-    setHasMore(true);
     setCurrentIndex(0);
     setIsPlaying(false);
     setLoading(true);
+    setError(null);
   }, [jobIdParam, mode, bookTitle]);
 
-  /* ----------------------- INITIAL LOAD ----------------------- */
+  /* ----------------------- INITIAL LOAD (from cached hook) ----------------------- */
 
   useEffect(() => {
-    loadPages();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobIdParam]);
+    if (pagesRes?.pages) {
+      const newPages: PageAudio[] = pagesRes.pages.map((p: any) => ({
+        page: parseInt(p.page.split('_')[1], 10),
+        ...p,
+      })).sort((a: any, b: any) => a.page - b.page);
 
-  /* ----------------------- INFINITE SCROLL ----------------------- */
+      setPages(newPages);
+      setTracks(newPages.map(p => ({
+        title: `Page ${p.page}`,
+        artist: bookTitle,
+        color: '#6366f1',
+        image: '/vite.svg',
+        audioSrc: p.audio_url,
+        expires_at: p.expires_at,
+      })));
 
-  useEffect(() => {
-    if (!hasMore || !sentinelRef.current) return;
+      setLoading(false);
+    }
+  }, [pagesRes, bookTitle]);
 
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) {
-        loadPages();
-      }
-    });
-
-    observer.observe(sentinelRef.current);
-
-    return () => observer.disconnect();
-  }, [hasMore, loadPages]);
+  /* (infinite scroll removed — pages are fetched and cached via react-query)
+     Use `refetch()` to refresh if needed. */
 
   /* ----------------------- AUDIO REFRESH ----------------------- */
 
   const refreshPlaylist = async (resumeIndex?: number) => {
     if (!jobIdParam || resumeIndex === undefined) return;
+    try {
+      const res = await refetch();
+      const pagesArray: PageAudio[] = (res.data?.pages || [])
+        .map((p: any) => ({ page: parseInt(p.page.split('_')[1], 10), ...p }))
+        .sort((a: any, b: any) => a.page - b.page);
 
-    const path = mode === 'private' ? '/audio/pages/' : '/public/listen/';
-    const res = await getJobPages(`${path}${jobIdParam}`);
+      setPages(pagesArray);
+      const tracksArray: Track[] = pagesArray.map(p => ({
+        title: `Page ${p.page}`,
+        artist: bookTitle,
+        color: '#6366f1',
+        image: '/vite.svg',
+        audioSrc: p.audio_url,
+        expires_at: p.expires_at,
+      }));
 
-    const pagesArray: PageAudio[] = res.pages
-      .map((p: any) => ({
-        page: parseInt(p.page.split('_')[1], 10),
-        ...p,
-      }))
-      .sort((a: any, b: any) => a.page - b.page);
+      setTracks(tracksArray);
 
-    setPages(pagesArray);
-
-    const tracksArray: Track[] = pagesArray.map(p => ({
-      title: `Page ${p.page}`,
-      artist: bookTitle,
-      color: '#6366f1',
-      image: '/vite.svg',
-      audioSrc: p.audio_url,
-      expires_at: p.expires_at,
-    }));
-
-    setTracks(tracksArray);
-
-    if (resumeIndex < tracksArray.length) {
-      setCurrentIndex(resumeIndex);
-      setIsPlaying(true);
+      if (resumeIndex < tracksArray.length) {
+        setCurrentIndex(resumeIndex);
+        setIsPlaying(true);
+      }
+    } catch (err) {
+      // keep previous state — show a generic error
+      setError('An error has occurred');
     }
   };
 
@@ -358,14 +305,7 @@ export default function AudiobookPlayerView({
             
           ))}
 
-          {hasMore && (
-            <div
-              ref={sentinelRef}
-              className="flex justify-center py-6"
-            >
-              <SpinnerIcon className="w-5 h-5 text-indigo-400" />
-            </div>
-          )}
+          {/* Pagination handled by react-query; no sentinel anymore */}
         </div>
       )}
     </div>

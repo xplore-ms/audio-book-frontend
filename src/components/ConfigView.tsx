@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FileIcon } from './Icons';
+import { useVoices } from '../features/voices/hooks/useVoices';
 import { useUser } from '../context/UserContext';
+import { getVoiceSignedUrl } from '../api/voices.api';
 
 interface ConfigViewProps {
   numPages: number;
-  onConfirm: (startPage: number, isFull: boolean, endPage?: number) => void;
+  onConfirm: (startPage: number, isFull: boolean, endPage?: number, voiceId?: string) => void;
   onLowCredits: (required: number) => void;
   isLoading: boolean;
   initialStartPage?: number;
@@ -16,10 +18,32 @@ export default function ConfigView({ numPages, onConfirm, onLowCredits, isLoadin
   const [isFullReview, setIsFullReview] = useState(false);
   const { user } = useUser();
   const MAX_STANDARD_PAGES = 4;
+  const { data: voices = [], isLoading: voicesLoading } = useVoices();
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [previewed, setPreviewed] = useState<Record<string, boolean>>({});
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (voices.length > 0 && !selectedVoiceId) {
+      setSelectedVoiceId(voices[0].id);
+    }
+  }, [voices, selectedVoiceId]);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isFullReview) {
-    if (startPage === '' || endPage === '') return;
+      if (startPage === '' || endPage === '') return;
 
       const currentRange = endPage - startPage + 1;
       if (currentRange > MAX_STANDARD_PAGES) {
@@ -72,7 +96,37 @@ export default function ConfigView({ numPages, onConfirm, onLowCredits, isLoadin
       onLowCredits(creditCost);
       return;
     }
-    onConfirm(startPage, isFullReview, isFullReview ? numPages : endPage);
+    // Pass the selected voice via DOM/form or handle in parent if needed later
+    onConfirm(startPage, isFullReview, isFullReview ? numPages : endPage, selectedVoiceId || undefined);
+  };
+
+  const handlePlayPreview = async (voiceId: string) => {
+    // stop existing
+    if (playingId === voiceId) {
+      audioRef.current?.pause();
+      setPlayingId(null);
+      return;
+    }
+
+    setPreviewLoadingId(voiceId);
+    try {
+      const url = await getVoiceSignedUrl(voiceId);
+      if (!url) throw new Error('No URL');
+
+      if (!audioRef.current) {
+        audioRef.current = new Audio();
+      }
+      audioRef.current.pause();
+      audioRef.current.src = url;
+      audioRef.current.onended = () => setPlayingId(null);
+      await audioRef.current.play();
+      setPlayingId(voiceId);
+      setPreviewed(prev => ({ ...prev, [voiceId]: true }));
+    } catch (e) {
+      console.error('Preview failed', e);
+    } finally {
+      setPreviewLoadingId(null);
+    }
   };
 
   return (
@@ -92,14 +146,14 @@ export default function ConfigView({ numPages, onConfirm, onLowCredits, isLoadin
 
       {/* Mode Selector */}
       <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl mb-10">
-        <button 
+        <button
           type="button"
           onClick={() => setIsFullReview(false)}
           className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${!isFullReview ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
         >
           Select Range
         </button>
-        <button 
+        <button
           type="button"
           onClick={() => setIsFullReview(true)}
           className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${isFullReview ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
@@ -109,36 +163,102 @@ export default function ConfigView({ numPages, onConfirm, onLowCredits, isLoadin
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Voice Picker / Previews */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-black uppercase tracking-tight">Voice Preview</h4>
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+            {voicesLoading ? (
+              <p className="text-sm text-slate-500">Loading voices…</p>
+            ) : voices.length === 0 ? (
+              <p className="text-sm text-slate-500">No voices available</p>
+            ) : (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen(o => !o)}
+                  className="w-full flex items-center justify-between p-3 bg-white rounded-md shadow-sm"
+                >
+                  <div className="min-w-0 text-left">
+                    <div className="text-sm font-black truncate">
+                      {voices.find(v => v.id === selectedVoiceId)?.display_name || voices[0].display_name || voices[0].voice_name}
+                    </div>
+                    <div className="text-xs text-slate-400 truncate">{(voices.find(v => v.id === selectedVoiceId)?.language_codes || []).join(', ')} • {voices.find(v => v.id === selectedVoiceId)?.ssml_gender}</div>
+                  </div>
+                  <div className="text-slate-400 text-xs">{dropdownOpen ? 'Close' : 'Choose'}</div>
+                </button>
+
+                {dropdownOpen && (
+                  <div className="mt-2 bg-white rounded-md shadow-lg border max-h-60 overflow-auto">
+                    {voices.map(v => (
+                      <div key={v.id} className="flex items-center justify-between p-2 hover:bg-slate-50">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <input
+                            type="radio"
+                            name="voice"
+                            checked={selectedVoiceId === v.id}
+                            onChange={() => setSelectedVoiceId(v.id)}
+                            className="accent-indigo-600"
+                          />
+                          <div className="min-w-0">
+                            <div className="text-sm font-black truncate">{v.display_name || v.voice_name}</div>
+                            <div className="text-xs text-slate-400 truncate">{(v.language_codes || []).join(', ')} • {v.ssml_gender}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handlePlayPreview(v.id)}
+                            className="px-3 py-1 text-xs rounded-md bg-indigo-50 text-indigo-700"
+                          >
+                            {previewLoadingId === v.id ? 'Loading…' : (playingId === v.id ? 'Pause' : 'Play')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setSelectedVoiceId(v.id); setDropdownOpen(false); }}
+                            disabled={!previewed[v.id]}
+                            className={`px-3 py-1 text-xs rounded-md ${previewed[v.id] ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                          >
+                            Select
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
         {!isFullReview ? (
           <div className="animate-fade-in space-y-6">
             <div className="text-center space-y-2 mb-8 px-4">
               <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Automatic Processing (Up to 4 pages)</h4>
               <p className="text-sm text-slate-500 leading-relaxed">
-                Your PDF will be securely stored on our servers for up to <span className="text-indigo-600 font-bold">5 days</span> from the time of upload. 
+                Your PDF will be securely stored on our servers for up to <span className="text-indigo-600 font-bold">5 days</span> from the time of upload.
                 This option is best for quick previews or short documents.
               </p>
             </div>
 
             <div className="flex items-center gap-4 bg-slate-50 p-8 rounded-3xl border border-slate-100 group">
-               <div className="flex-1 text-center">
-                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Start</p>
-                  <input
-                    type="number"
-                    value={startPage}
-                    onChange={e => handleStartChange(e.target.value)}
-                    className="w-full text-center text-4xl font-black rounded-2xl border-none bg-transparent py-2 text-indigo-600 outline-none focus:ring-0 tabular-nums"
-                  />
-               </div>
+              <div className="flex-1 text-center">
+                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Start</p>
+                <input
+                  type="number"
+                  value={startPage}
+                  onChange={e => handleStartChange(e.target.value)}
+                  className="w-full text-center text-4xl font-black rounded-2xl border-none bg-transparent py-2 text-indigo-600 outline-none focus:ring-0 tabular-nums"
+                />
+              </div>
               <div className="h-10 w-px bg-slate-200" />
-               <div className="flex-1 text-center">
-                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">End</p>
-                  <input
-                    type="number"
-                    value={endPage}
-                    onChange={e => handleEndChange(e.target.value)}
-                    className="w-full text-center text-4xl font-black rounded-2xl border-none bg-transparent py-2 text-indigo-600 outline-none focus:ring-0 tabular-nums"
-                  />
-               </div>
+              <div className="flex-1 text-center">
+                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">End</p>
+                <input
+                  type="number"
+                  value={endPage}
+                  onChange={e => handleEndChange(e.target.value)}
+                  className="w-full text-center text-4xl font-black rounded-2xl border-none bg-transparent py-2 text-indigo-600 outline-none focus:ring-0 tabular-nums"
+                />
+              </div>
             </div>
           </div>
         ) : (
@@ -151,19 +271,19 @@ export default function ConfigView({ numPages, onConfirm, onLowCredits, isLoadin
             </div>
 
             <div className="p-8 bg-amber-50 border border-amber-100 rounded-[2rem] space-y-4">
-               <div className="flex gap-4">
-                 <div className="flex-shrink-0 w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-amber-500">
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
-                 </div>
-                 <div className="text-[13px] text-amber-950 font-medium leading-relaxed">
-                   <p className="font-black mb-3 uppercase tracking-tight text-xs">Manual Processing Timeline</p>
-                   <ul className="space-y-2 opacity-80 list-disc pl-4">
-                     <li>Processing may take some time to begin.</li>
-                     <li>Once processing starts, completion typically takes up to <span className="font-bold">3 hours</span>.</li>
-                     <li>You’ll be notified by email as soon as processing begins.</li>
-                   </ul>
-                 </div>
-               </div>
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-amber-500">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
+                </div>
+                <div className="text-[13px] text-amber-950 font-medium leading-relaxed">
+                  <p className="font-black mb-3 uppercase tracking-tight text-xs">Manual Processing Timeline</p>
+                  <ul className="space-y-2 opacity-80 list-disc pl-4">
+                    <li>Processing may take some time to begin.</li>
+                    <li>Once processing starts, completion typically takes up to <span className="font-bold">3 hours</span>.</li>
+                    <li>You’ll be notified by email as soon as processing begins.</li>
+                  </ul>
+                </div>
+              </div>
             </div>
             <p className="text-center text-[10px] text-indigo-400 font-bold uppercase tracking-[0.2em] italic">
               Recommended for long documents & premium listening

@@ -4,7 +4,7 @@ import { startJob, requestFullReview, updateJobTitle, reuploadPdf } from '../../
 export function useStartJob() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ jobId, start, end }: { jobId: string; start: number; end?: number }) => startJob(jobId, start, end),
+    mutationFn: ({ jobId, start, end, voiceId }: { jobId: string; start: number; end?: number; voiceId?: string }) => startJob(jobId, start, end, voiceId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['pdfJob'] });
       qc.invalidateQueries({ queryKey: ['jobProgress'] });

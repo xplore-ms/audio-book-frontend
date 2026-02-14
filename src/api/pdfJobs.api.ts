@@ -26,9 +26,9 @@ export async function reuploadPdf(job_id: string, file: File): Promise<any> {
   return res.data;
 }
 
-export async function startJob(job_id: string, start: number = 1, end?: number): Promise<StartJobResponse> {
+export async function startJob(job_id: string, start: number = 1, end?: number, voice_id?: string): Promise<StartJobResponse> {
   const res = await api.post('/start', null, {
-    params: { job_id, start, end }
+    params: { job_id, start, end, voice_id }
   });
   return res.data;
 }

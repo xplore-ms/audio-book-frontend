@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation  } from 'react-router-dom';
 import { useJobPages } from '../features/audio/hooks/useJobPages';
-import { PlayIcon, PauseIcon, SpinnerIcon } from './Icons';
+import { PlayIcon, PauseIcon, SpinnerIcon } from '../components/Icons';
 import type { PageSyncInfo } from '../types';
 
 interface PageAudio extends PageSyncInfo {
