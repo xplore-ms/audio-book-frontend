@@ -1,14 +1,14 @@
 import { Routes, Route } from 'react-router-dom';
-import HomeView from '../components/HomeView';
-import HowItWorks from '../components/HowItWorks';
-import StoreView from '../components/StoreView';
-import LibraryView from '../components/LibraryViewNew';
-import MyLibraryView from '../components/MyLibraryViewNew';
-import ConfigureJobView from '../components/ConfigureJobView';
+import HomeView from '../pages/HomeView';
+import HowItWorks from '../pages/HowItWorks';
+import StoreView from '../pages/StoreView';
+import LibraryView from '../pages/LibraryViewNew';
+import MyLibraryView from '../pages/MyLibraryViewNew';
+import ConfigureJobView from '../pages/ConfigureJobView';
 import { SignIn, SignUp } from '../components/Auth/AuthForms';
-import VerifyPayment from '../components/VerifyPayment';
-import AudiobookPagesView from '../components/AudiobookPagesView';
-import AudiobookPlayerView from '../components/AudiobookPlayerView';
+import VerifyPayment from '../pages/VerifyPayment';
+import AudiobookPagesView from '../pages/AudiobookPagesView';
+import AudiobookPlayerView from '../pages/AudiobookPlayerView';
 import ProtectedRoute from '../components/Protected';
 
 export default function AppRoutes() {

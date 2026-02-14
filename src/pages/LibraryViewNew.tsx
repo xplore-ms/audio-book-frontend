@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePublicLibrary } from '../features/audio/hooks/usePublicLibrary';
 import type { Audiobook } from '../types';
-import { SpinnerIcon, FileIcon } from './Icons';
+import { SpinnerIcon, FileIcon } from '../components/Icons';
 
 
 // function InsufficientCreditsModal({ required, current, onClose, onBuy }: { required: number, current: number, onClose: () => void, onBuy: () => void }) {

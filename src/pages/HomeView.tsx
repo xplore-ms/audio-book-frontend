@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import UploadView from './UploadView';
+import UploadView from '../components/UploadView';
 import { useUploadPdf } from '../features/pdf/hooks/mutations';
 import { useUser } from '../context/UserContext';
 import { useBackend } from '../context/BackendContext';

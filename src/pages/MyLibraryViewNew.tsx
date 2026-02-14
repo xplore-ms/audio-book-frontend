@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMyLibrary } from '../features/audio/hooks/useMyLibrary';
 import { useShareAudiobook } from '../features/audio/hooks/mutations';
-import { SpinnerIcon, FileIcon } from './Icons';
+import { SpinnerIcon, FileIcon } from '../components/Icons';
 
 export default function MyLibraryView() {
   const [shareJobId, setShareJobId] = useState<string | null>(null);

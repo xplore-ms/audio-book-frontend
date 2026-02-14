@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { UploadIcon, FileIcon, CheckCircleIcon, MailIcon } from './Icons';
+import { UploadIcon, FileIcon, CheckCircleIcon, MailIcon } from '../components/Icons';
 
 export default function HowItWorks() {
   const steps = [
