@@ -21,6 +21,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const setUser = useAuthStore((state: any) => state.setUser);
   const clear = useAuthStore((state: any) => state.clear);
   const token = useAuthStore((state: any) => state.token);
+  const user = useAuthStore((state: any) => state.user);
 
   const isAuthenticated = !!token;
 
@@ -63,13 +64,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = async () => {
     const currentToken = localStorage.getItem('narrio_token');
     if (!currentToken) return;
-    const data = await getUserInfo();
-    setUser((prev: any) => prev ? { ...prev, credits: data.credits } : prev);
+    try {
+      const data = await getUserInfo();
+      // Get latest state directly to avoid closure staleness, or use 'user' from store subscription
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser) {
+        setUser({ ...currentUser, credits: data.credits });
+      }
+    } catch (error) {
+      console.error("Failed to refresh user info", error);
+    }
   };
 
   return (
     <UserContext.Provider
-      value={{ user: useAuthStore.getState().user, authChecked, isAuthenticated, login, register, logout, refreshUser }}
+      value={{ user, authChecked, isAuthenticated, login, register, logout, refreshUser }}
     >
       {children}
     </UserContext.Provider>

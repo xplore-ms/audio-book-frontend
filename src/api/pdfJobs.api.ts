@@ -1,5 +1,5 @@
 import api from './client';
-import type { UploadResponse, StartJobResponse, TaskStatusResponse } from '../types';
+import type { UploadResponse, StartJobResponse } from '../types';
 
 export async function uploadPdf(file: File, title: string): Promise<UploadResponse> {
   const form = new FormData();
@@ -35,11 +35,6 @@ export async function startJob(job_id: string, start: number = 1, end?: number, 
 
 export async function requestFullReview(job_id: string): Promise<any> {
   const res = await api.post('/request-full-review', null, { params: { job_id } });
-  return res.data;
-}
-
-export async function getStatus(taskId: string): Promise<TaskStatusResponse> {
-  const res = await api.get(`/status/${taskId}`);
   return res.data;
 }
 
