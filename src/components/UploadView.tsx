@@ -13,7 +13,7 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isWaking } = useBackend();
-  
+
   const MAX_FILE_SIZE_MB = 50;
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
@@ -53,7 +53,6 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
       return;
     }
     setFile(f);
-    // Auto-set title from filename (strip .pdf)
     setTitle(f.name.replace(/\.[^/.]+$/, ""));
   };
 
@@ -95,9 +94,9 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
               it cost 10 credits for any upload
             </p>
           </div>
-          <input 
-            type="file" 
-            className="hidden" 
+          <input
+            type="file"
+            className="hidden"
             accept="application/pdf"
             onChange={handleFileChange}
             ref={fileInputRef}
@@ -108,7 +107,7 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
         <div className="bg-white rounded-[2.5rem] shadow-2xl p-10 border border-slate-100 animate-fade-in-up">
           <div className="mb-8">
             <label className="block text-xs font-black text-indigo-400 uppercase tracking-widest mb-3 ml-1">Audiobook Title</label>
-            <input 
+            <input
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
@@ -130,8 +129,8 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
                 {(file.size / 1024 / 1024).toFixed(2)} Megabytes
               </p>
             </div>
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => !isLoading && setFile(null)}
               className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
             >
@@ -146,7 +145,7 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
               w-full flex justify-center items-center gap-3 py-5 px-4 border border-transparent rounded-2xl shadow-xl text-lg font-black uppercase tracking-widest text-white 
               transition-all duration-300
               ${isLoading || isWaking
-                ? 'bg-slate-200 cursor-not-allowed text-slate-400 shadow-none' 
+                ? 'bg-slate-200 cursor-not-allowed text-slate-400 shadow-none'
                 : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-2xl hover:-translate-y-1 active:scale-95'}
             `}
           >

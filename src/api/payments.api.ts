@@ -7,7 +7,8 @@ export interface InitiatePaymentResponse {
 }
 
 export async function initiatePayment(credits: number): Promise<InitiatePaymentResponse> {
-  const res = await api.post('/payments/initiate', { credits });
+  const callback_url = `${window.location.origin}/payment/verify`;
+  const res = await api.post('/payments/initiate', { credits, callback_url });
   return res.data;
 }
 
