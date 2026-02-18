@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMyLibrary } from '../features/audio/hooks/useMyLibrary';
 import { useShareAudiobook } from '../features/audio/hooks/mutations';
 import { SpinnerIcon, FileIcon } from '../components/Icons';
+import React from 'react';
 
 export default function MyLibraryView() {
   const [shareJobId, setShareJobId] = useState<string | null>(null);
@@ -86,7 +87,7 @@ export default function MyLibraryView() {
                 state: { title: book.title }
               })
             }
-            className="flex flex-col text-left flex-grow"
+            className="flex flex-col text-left flex-grow min-w-0"
           >
             <h3 className="text-sm sm:text-lg font-black uppercase truncate">
               {book.title || `Untitled ${book.job_id.slice(0, 4)}`}
@@ -97,19 +98,23 @@ export default function MyLibraryView() {
           </button>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => openShareModal(book.job_id)}
-              className="px-4 py-2 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-xl text-[10px] font-black uppercase"
-            >
-              Share
-            </button>
+            {book.is_owner && (
+              <React.Fragment>
+                <button
+                  onClick={() => openShareModal(book.job_id)}
+                  className="px-4 py-2 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-xl text-[10px] font-black uppercase"
+                >
+                  Share
+                </button>
+                <button
+                  onClick={() => navigate(`/configure/${book.job_id}`)}
+                  className="px-4 py-2 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-xl text-[10px] font-black uppercase"
+                >
+                  Manage
+                </button>
+              </React.Fragment>
+            )}
 
-            <button
-              onClick={() => navigate(`/configure/${book.job_id}`)}
-              className="px-4 py-2 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-xl text-[10px] font-black uppercase"
-            >
-              Manage
-            </button>
             <button
               onClick={() =>
                 navigate(`/my-library/${book.job_id}`, {
@@ -118,7 +123,7 @@ export default function MyLibraryView() {
                   }
                 })
               }
-               className="w-10 h-10 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all"
+              className="w-10 h-10 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
             </button>

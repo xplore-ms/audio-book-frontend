@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useJobPages } from '../features/audio/hooks/useJobPages';
 import AudioPlayer from '../components/AudioPlayer';
 import { PlayIcon, PauseIcon, SpinnerIcon } from '../components/Icons';
 import type { PageSyncInfo } from '../types';
+import { AxiosError } from 'axios';
 
 interface PageAudio extends PageSyncInfo {
   download_url: any;
@@ -35,7 +36,6 @@ export function DownloadIcon({ className }: { className?: string }) {
   );
 }
 
-
 export default function AudiobookPlayerView({
   mode,
 }: {
@@ -43,6 +43,8 @@ export default function AudiobookPlayerView({
 }) {
   const { jobId: jobIdParam } = useParams();
   const { state } = useLocation();
+  const navigate = useNavigate();
+
   const bookTitle = state?.title ?? 'Audiobook';
 
   const [showPages, setShowPages] = useState(false);
@@ -51,37 +53,51 @@ export default function AudiobookPlayerView({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   /* ----------------------- HELPERS ----------------------- */
 
   const isExpired = (expiresAt: number, buffer = 30) =>
     Date.now() / 1000 > expiresAt - buffer;
 
-  /* ----------------------- LOAD PAGES / HELPERS ----------------------- */
-
   const forceDownload = async (url: string, filename: string) => {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Download failed');
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Download failed');
 
-  const blob = await res.blob();
-  const blobUrl = window.URL.createObjectURL(blob);
+    const blob = await res.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
 
-  const link = document.createElement('a');
-  link.href = blobUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
 
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(blobUrl);
-};
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  };
 
+  /* ----------------------- DATA FETCH ----------------------- */
 
-  // Use cached hook to fetch all pages for this job
-  const { data: pagesRes, refetch } = useJobPages(jobIdParam, mode);
+  const {
+    data: pagesRes,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useJobPages(jobIdParam, mode);
 
+  /* ----------------------- HANDLE FETCH ERROR ----------------------- */
+
+  useEffect(() => {
+    if (!isError) return;
+
+    const err = error as AxiosError;
+
+    // 404 / not found → back to library
+    if (err.response?.status === 404) {
+      alert('Audiobook still processing go to manage');
+      navigate('/my-library', { replace: true });
+    }
+  }, [isError, error, navigate]);
 
   /* ----------------------- RESET ON JOB CHANGE ----------------------- */
 
@@ -90,65 +106,65 @@ export default function AudiobookPlayerView({
     setTracks([]);
     setCurrentIndex(0);
     setIsPlaying(false);
-    setLoading(true);
-    setError(null);
   }, [jobIdParam, mode, bookTitle]);
 
-  /* ----------------------- INITIAL LOAD (from cached hook) ----------------------- */
+  /* ----------------------- INITIAL LOAD ----------------------- */
 
   useEffect(() => {
-    if (pagesRes?.pages) {
-      const newPages: PageAudio[] = pagesRes.pages.map((p: any) => ({
+    if (!pagesRes?.pages) return;
+
+    const newPages: PageAudio[] = pagesRes.pages
+      .map((p: any) => ({
         page: parseInt(p.page.split('_')[1], 10),
         ...p,
-      })).sort((a: any, b: any) => a.page - b.page);
+      }))
+      .sort((a: any, b: any) => a.page - b.page);
 
-      setPages(newPages);
-      setTracks(newPages.map(p => ({
+    setPages(newPages);
+    setTracks(
+      newPages.map(p => ({
         title: `Page ${p.page}`,
         artist: bookTitle,
         color: '#6366f1',
         image: '/vite.svg',
         audioSrc: p.audio_url,
         expires_at: p.expires_at,
-      })));
-
-      setLoading(false);
-    }
+      }))
+    );
   }, [pagesRes, bookTitle]);
-
-  /* (infinite scroll removed — pages are fetched and cached via react-query)
-     Use `refetch()` to refresh if needed. */
 
   /* ----------------------- AUDIO REFRESH ----------------------- */
 
   const refreshPlaylist = async (resumeIndex?: number) => {
     if (!jobIdParam || resumeIndex === undefined) return;
+
     try {
       const res = await refetch();
       const pagesArray: PageAudio[] = (res.data?.pages || [])
-        .map((p: any) => ({ page: parseInt(p.page.split('_')[1], 10), ...p }))
+        .map((p: any) => ({
+          page: parseInt(p.page.split('_')[1], 10),
+          ...p,
+        }))
         .sort((a: any, b: any) => a.page - b.page);
 
       setPages(pagesArray);
-      const tracksArray: Track[] = pagesArray.map(p => ({
-        title: `Page ${p.page}`,
-        artist: bookTitle,
-        color: '#6366f1',
-        image: '/vite.svg',
-        audioSrc: p.audio_url,
-        expires_at: p.expires_at,
-      }));
+      setTracks(
+        pagesArray.map(p => ({
+          title: `Page ${p.page}`,
+          artist: bookTitle,
+          color: '#6366f1',
+          image: '/vite.svg',
+          audioSrc: p.audio_url,
+          expires_at: p.expires_at,
+        }))
+      );
 
-      setTracks(tracksArray);
-
-      if (resumeIndex < tracksArray.length) {
+      if (resumeIndex < pagesArray.length) {
         setCurrentIndex(resumeIndex);
         setIsPlaying(true);
       }
-    } catch (err) {
-      // keep previous state — show a generic error
-      setError('An error has occurred');
+    } catch {
+      // silently keep old state
     }
   };
 
@@ -192,7 +208,7 @@ export default function AudiobookPlayerView({
 
   /* ----------------------- RENDER ----------------------- */
 
-  if (loading) {
+  if (isLoading || tracks.length === 0) {
     return (
       <div className="p-24 flex justify-center">
         <SpinnerIcon className="w-10 h-10 text-indigo-600" />
@@ -200,17 +216,8 @@ export default function AudiobookPlayerView({
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-24 flex flex-col items-center text-center">
-        <h2 className="text-xl font-black text-slate-900 mb-2 uppercase">
-          {error}
-        </h2>
-        <p className="text-sm text-slate-400">
-          You don’t have permission to access this audiobook.
-        </p>
-      </div>
-    );
+  if (isError) {
+    return null; // redirect handled in effect
   }
 
 
@@ -260,18 +267,19 @@ export default function AudiobookPlayerView({
               key={p.page}
               onClick={() => playPage(idx)}
               className={`w-full p-5 rounded-2xl flex items-center justify-between
-                ${
-                  idx === currentIndex
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white border border-slate-100'
+                ${idx === currentIndex
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white border border-slate-100'
                 }`}
             >
               <span className="font-black">{p.page}</span>
+
               {idx === currentIndex && isPlaying ? (
                 <PauseIcon className="w-6 h-6" />
               ) : (
                 <PlayIcon className="w-6 h-6 text-indigo-600" />
               )}
+
               {p.download_url && (
                 <button
                   onClick={async e => {
@@ -281,31 +289,23 @@ export default function AudiobookPlayerView({
                         p.download_url,
                         `${bookTitle}_page_${p.page}.mp3`
                       );
-                    } catch (err) {
+                    } catch {
                       alert('Download failed. Please try again.');
                     }
                   }}
-                  className={`p-2 rounded-full transition
-                    ${
-                      idx === currentIndex
-                        ? 'hover:bg-indigo-500'
-                        : 'hover:bg-slate-100'
+                  className={`p-2 rounded-full transition ${idx === currentIndex
+                    ? 'hover:bg-indigo-500'
+                    : 'hover:bg-slate-100'
                     }`}
-                  title="Download page audio"
                 >
                   <DownloadIcon
-                    className={`w-5 h-5 ${
-                      idx === currentIndex ? 'text-white' : 'text-slate-600'
-                    }`}
+                    className={`w-5 h-5 ${idx === currentIndex ? 'text-white' : 'text-slate-600'
+                      }`}
                   />
                 </button>
               )}
-
             </button>
-            
           ))}
-
-          {/* Pagination handled by react-query; no sentinel anymore */}
         </div>
       )}
     </div>

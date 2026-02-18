@@ -27,6 +27,7 @@ export interface UserAudiobook {
   final_size_mb: number;
   title?: string;
   created_at: string;
+  is_owner?: boolean;
 }
 
 export interface PageSyncInfo {

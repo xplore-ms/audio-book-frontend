@@ -12,5 +12,6 @@ export function useJobPages(jobId: string | undefined, mode: 'public' | 'private
     },
     enabled: !!jobId,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: false,
   });
 }
