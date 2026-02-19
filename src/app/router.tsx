@@ -7,7 +7,6 @@ import MyLibraryView from '../pages/MyLibraryViewNew';
 import ConfigureJobView from '../pages/ConfigureJobView';
 import { SignIn, SignUp } from '../components/Auth/AuthForms';
 import VerifyPayment from '../pages/VerifyPayment';
-import AudiobookPagesView from '../pages/AudiobookPagesView';
 import AudiobookPlayerView from '../pages/AudiobookPlayerView';
 import ProtectedRoute from '../components/Protected';
 
@@ -17,7 +16,7 @@ export default function AppRoutes() {
       <Route path="/" element={<ProtectedRoute><HomeView /></ProtectedRoute>} />
       <Route path="/library" element={<ProtectedRoute><LibraryView /></ProtectedRoute>} />
       <Route path="/my-library" element={<ProtectedRoute><MyLibraryView /></ProtectedRoute>} />
-      <Route path="/public-library/:jobId" element={<ProtectedRoute><AudiobookPagesView mode='public'/></ProtectedRoute>} />
+      <Route path="/public-library/:jobId" element={<ProtectedRoute><AudiobookPlayerView mode='public' /></ProtectedRoute>} />
       <Route path="/my-library/:jobId" element={<ProtectedRoute><AudiobookPlayerView mode='private' /></ProtectedRoute>} />
       <Route path="/shared/:jobId" element={<ProtectedRoute><AudiobookPlayerView mode='private' /></ProtectedRoute>} />
       <Route path="/configure/:jobId" element={<ProtectedRoute><ConfigureJobView /></ProtectedRoute>} />

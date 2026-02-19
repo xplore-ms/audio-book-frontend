@@ -1,6 +1,12 @@
 import axios from 'axios';
 
-export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://audio-book-elji.onrender.com';
+const envApiUrl = (import.meta as any).env?.VITE_API_URL;
+const secureApiUrl =
+  envApiUrl && envApiUrl.startsWith('http://') && !envApiUrl.includes('localhost') && !envApiUrl.includes('127.0.0.1')
+    ? envApiUrl.replace('http://', 'https://')
+    : envApiUrl;
+
+export const API_BASE_URL = secureApiUrl || 'https://audio-book-elji.onrender.com';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
