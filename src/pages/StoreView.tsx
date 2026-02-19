@@ -5,7 +5,7 @@ import type { PriceQuote } from '../types';
 
 export default function StoreView() {
   const isNigeria = navigator.language.includes("NG");
-  
+
   const [credits, setCredits] = useState<number | string>(100);
   const [currency, setCurrency] = useState(isNigeria ? "NGN" : "USD");
   const [quote, setQuote] = useState<PriceQuote | null>(null);
@@ -71,13 +71,13 @@ export default function StoreView() {
       {/* Currency Toggle */}
       <div className="flex justify-center animate-fade-in-up">
         <div className="bg-white p-2 rounded-3xl shadow-sm border border-slate-100 flex gap-2">
-          <button 
+          <button
             onClick={() => setCurrency("NGN")}
             className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all ${currency === "NGN" ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
           >
             Naira (₦)
           </button>
-          <button 
+          <button
             onClick={() => setCurrency("USD")}
             className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all ${currency === "USD" ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
           >
@@ -92,7 +92,7 @@ export default function StoreView() {
           <div>
             <label className="block text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Enter Amount of Credits</label>
             <div className="relative mb-8">
-              <input 
+              <input
                 type="number"
                 value={credits}
                 onChange={(e) => setCredits(e.target.value)}
@@ -104,7 +104,7 @@ export default function StoreView() {
 
             <div className="flex flex-wrap gap-3">
               {[50, 100, 250, 500, 1000].map(amt => (
-                <button 
+                <button
                   key={amt}
                   onClick={() => setAmount(amt)}
                   className={`px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${numericCredits === amt ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
@@ -116,12 +116,6 @@ export default function StoreView() {
           </div>
 
           <div className="bg-indigo-50/50 rounded-[2.5rem] p-10 border border-indigo-100 flex flex-col justify-center text-center relative overflow-hidden">
-            {numericCredits >= 500 && (
-              <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest animate-bounce shadow-lg">
-                50% OFF Applied
-              </div>
-            )}
-            
             <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2">Total Price</p>
             <div className="flex items-center justify-center gap-1 mb-8 min-h-[4rem]">
               {isQuoting ? (
@@ -134,14 +128,14 @@ export default function StoreView() {
             </div>
 
             <div className="space-y-4 mb-8">
-               <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest">
-                  <span className="text-slate-400">Method</span>
-                  <span className="text-slate-900">Secure Paystack</span>
-               </div>
-               <div className="h-px bg-indigo-100" />
-               <div className="text-xs text-indigo-900/60 font-medium italic">
-                 {currency === "USD" ? "USD rate converted at server-set bank rate." : "Standard pricing applies."}
-               </div>
+              <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest">
+                <span className="text-slate-400">Method</span>
+                <span className="text-slate-900">Secure Paystack</span>
+              </div>
+              <div className="h-px bg-indigo-100" />
+              <div className="text-xs text-indigo-900/60 font-medium italic">
+                {currency === "USD" ? "USD rate converted at server-set bank rate." : "Standard pricing applies."}
+              </div>
             </div>
 
             <button
@@ -154,20 +148,8 @@ export default function StoreView() {
           </div>
         </div>
       </div>
-
-      {/* Discount Banner */}
-      <div className="bg-amber-50 rounded-[2rem] p-8 border border-amber-100 flex items-center gap-6 animate-fade-in-up">
-        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm shrink-0">
-           <svg className="w-8 h-8 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 5a3 3 0 015-2.236A3 3 0 0114.83 6H16a2 2 0 110 4h-5V9a1 1 0 10-2 0v1H4a2 2 0 110-4h1.17C5.06 5.687 5 5.35 5 5zm4 1V5a1 1 0 10-1.193.98l1.19-.164zM11.193 6H13a1 1 0 10-1.193-.98l-.193.164z" clipRule="evenodd" /><path d="M9 11H4v5a2 2 0 002 2h3V11zM11 18h3a2 2 0 002-2v-5h-5v7z" /></svg>
-        </div>
-        <div>
-          <h4 className="text-lg font-black text-amber-900 uppercase tracking-tight">Bulk Conversion Discount</h4>
-          <p className="text-amber-800/70 text-sm font-medium">Buying 500 credits or more? We cut the price per credit by 50%! Perfect for full audiobooks and long documents.</p>
-        </div>
-      </div>
-
       <div className="text-center pt-8 border-t border-slate-100">
-         <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Price determined by server-side quote • Secure transaction handling</p>
+        <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Price determined by server-side quote • Secure transaction handling</p>
       </div>
     </div>
   );
