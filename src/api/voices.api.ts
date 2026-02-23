@@ -13,7 +13,7 @@ export type VoiceRecord = {
 };
 
 export async function fetchVoices(): Promise<VoiceRecord[]> {
-  const res = await api.get('/voices');
+  const res = await api.get('/voices/');
   return res.data?.voices || [];
 }
 
