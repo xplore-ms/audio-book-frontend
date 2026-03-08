@@ -9,6 +9,7 @@ export interface User {
   id: string;
   email: string;
   credits: number;
+  active_plan_id?: string;
   isLoggedIn: boolean;
   token?: string;
   refreshToken?: string;
@@ -87,6 +88,7 @@ export interface PriceQuote {
   currency: string;
   amount: number;
   display: string;
+  is_upgrade?: boolean;
 }
 
 export type AppStep =

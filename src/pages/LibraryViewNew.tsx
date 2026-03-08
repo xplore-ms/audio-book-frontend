@@ -69,7 +69,7 @@ export default function LibraryViewNew() {
           Public bookshelf is empty
         </h3>
         <p className="text-slate-400 text-sm mb-10 max-w-xs mx-auto font-medium text-center">
-          Upload your first PDF on the dashboard to start listening.
+          Upload your first document on the dashboard to start listening.
         </p>
       </div>
     );

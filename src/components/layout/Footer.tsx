@@ -17,7 +17,7 @@ export default function Footer() {
           <h5 className="font-black text-slate-900 mb-6 uppercase tracking-[0.2em] text-[10px] text-indigo-600">Explore</h5>
           <ul className="space-y-3 font-bold">
             <li><Link to="/library" className="hover:text-indigo-600 transition-colors">Public Archive</Link></li>
-            <li><Link to="/store" className="hover:text-indigo-600 transition-colors">Credit Packages</Link></li>
+            <li><Link to="/store" className="hover:text-indigo-600 transition-colors">Pricing Plans</Link></li>
             <li><Link to="/how-it-works" className="hover:text-indigo-600 transition-colors">How it works</Link></li>
           </ul>
         </div>

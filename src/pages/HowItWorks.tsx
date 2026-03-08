@@ -4,7 +4,7 @@ import { UploadIcon, FileIcon, CheckCircleIcon, MailIcon } from '../components/I
 export default function HowItWorks() {
   const steps = [
     {
-      title: "Upload Your PDF",
+      title: "Upload Your Document",
       description: "Select any PDF document you want to listen to. Our system accepts academic papers, books, reports, and more.",
       icon: <UploadIcon className="w-8 h-8 text-white" />,
       color: "bg-indigo-500"
@@ -42,11 +42,11 @@ export default function HowItWorks() {
         {steps.map((step, index) => (
           <div key={index} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow relative overflow-hidden">
             <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 ${step.color}`} />
-            
+
             <div className={`${step.color} w-16 h-16 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-indigo-100`}>
               {step.icon}
             </div>
-            
+
             <h3 className="text-xl font-bold text-slate-900 mb-3">{step.title}</h3>
             <p className="text-slate-600 leading-relaxed">
               {step.description}
@@ -58,7 +58,7 @@ export default function HowItWorks() {
       <div className="mt-16 bg-indigo-50 rounded-2xl p-8 text-center border border-indigo-100">
         <h3 className="text-2xl font-bold text-slate-900 mb-2">Ready to try it?</h3>
         <p className="text-slate-600 mb-6">Convert your first document for free today.</p>
-        <Link 
+        <Link
           to="/"
           className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
         >

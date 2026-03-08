@@ -14,13 +14,13 @@ export default function SuccessView({ onReset, onContinue }: SuccessViewProps) {
       <div className="w-24 h-24 bg-green-50 rounded-[2rem] flex items-center justify-center mx-auto mb-10 shadow-inner">
         <CheckCircleIcon className="w-12 h-12 text-green-500" />
       </div>
-      
+
       <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">
         Conversion Complete!
       </h2>
-      
+
       <p className="text-lg text-slate-500 mb-12 leading-relaxed max-w-md mx-auto">
-        Your PDF has been successfully narrated. You can now access the interactive player in your library.
+        Your document has been successfully narrated. You can now access the interactive player in your library.
       </p>
 
       {/* <div className="bg-indigo-50/50 rounded-[2rem] p-8 mb-12 text-left border border-indigo-100 flex items-center gap-6">
@@ -42,13 +42,13 @@ export default function SuccessView({ onReset, onContinue }: SuccessViewProps) {
         >
           Open My Library
         </button>
-        
+
         <div className="flex gap-4">
           <button
             onClick={onContinue}
             className="flex-1 py-4 px-6 bg-white border-2 border-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 hover:border-slate-200 transition-all text-sm"
           >
-            Same PDF (Retry Range)
+            Same Document (Retry Range)
           </button>
           <button
             onClick={onReset}

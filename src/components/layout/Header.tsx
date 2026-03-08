@@ -40,15 +40,22 @@ export default function Header() {
               {user && <NavLink to="/my-library" label="My Library" />}
               <NavLink to="/library" label="Public Library" />
               <NavLink to="/how-it-works" label="How it works" />
-              <NavLink to="/store" label="Get Credits" />
+              <NavLink to="/store" label="Pricing" />
 
               <div className="h-6 w-px bg-slate-200 mx-2" />
 
               {user ? (
                 <div className="flex items-center gap-6">
-                  <Link to="/store" className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-2xl hover:bg-indigo-100 transition-all font-black">
-                    <span>{user.credits}</span>
-                    <span className="text-[10px] opacity-60">Credits</span>
+                  <Link to="/store" className="flex flex-col items-center justify-center bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-2xl hover:bg-indigo-100 transition-all group/credits">
+                    <div className="flex items-center gap-1 font-black leading-none">
+                      <span>{user.credits}</span>
+                      <span className="text-[10px] opacity-60">Credits</span>
+                    </div>
+                    {user.active_plan_id && (
+                      <span className="text-[8px] uppercase tracking-widest font-black opacity-40 group-hover/credits:opacity-70 transition-opacity">
+                        {user.active_plan_id}
+                      </span>
+                    )}
                   </Link>
                   <button onClick={logout} className="text-slate-400 hover:text-red-600 font-bold transition-colors">Logout</button>
                 </div>
@@ -62,8 +69,13 @@ export default function Header() {
 
             <div className="md:hidden flex items-center gap-2">
               {user ? (
-                <Link to="/store" className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl text-xs font-black border border-indigo-100">
-                  {user.credits} CR
+                <Link to="/store" className="flex flex-col items-center bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl border border-indigo-100 leading-tight">
+                  <span className="text-xs font-black">{user.credits} CR</span>
+                  {user.active_plan_id && (
+                    <span className="text-[7px] font-black uppercase tracking-tighter opacity-50">
+                      {user.active_plan_id}
+                    </span>
+                  )}
                 </Link>
               ) : (
                 <Link to="/signup" className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg active:scale-95 transition-all">
@@ -97,7 +109,7 @@ export default function Header() {
               {user && <NavLink to="/my-library" label="My Library" className="block text-3xl tracking-tighter" />}
               <NavLink to="/library" label="Public Archive" className="block text-3xl tracking-tighter" />
               <NavLink to="/how-it-works" label="How it works" className="block text-3xl tracking-tighter" />
-              <NavLink to="/store" label="Get Credits" className="block text-3xl tracking-tighter" />
+              <NavLink to="/store" label="Pricing" className="block text-3xl tracking-tighter" />
             </div>
 
             <div className="mt-12 pt-10 border-t border-slate-50">
@@ -108,7 +120,7 @@ export default function Header() {
                     <p className="text-slate-900 font-black truncate text-lg mb-4">{user.email}</p>
                     <div className="flex items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-slate-50">
                       <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase">Balance</span>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">Balance {user.active_plan_id && `• ${user.active_plan_id} Plan`}</span>
                         <span className="text-indigo-600 font-black">{user.credits} Credits</span>
                       </div>
                       <Link to="/store" className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">Add More</Link>

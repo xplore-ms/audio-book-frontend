@@ -35,7 +35,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const data = await getUserInfo();
-        setUser({ id: data.email, email: data.email, credits: data.credits, isLoggedIn: true });
+        setUser({
+          id: data.email,
+          email: data.email,
+          credits: data.credits,
+          active_plan_id: data.active_plan_id,
+          isLoggedIn: true
+        });
       } catch {
         clear();
       } finally {
@@ -69,7 +75,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       // Get latest state directly to avoid closure staleness, or use 'user' from store subscription
       const currentUser = useAuthStore.getState().user;
       if (currentUser) {
-        setUser({ ...currentUser, credits: data.credits });
+        setUser({
+          ...currentUser,
+          credits: data.credits,
+          active_plan_id: data.active_plan_id
+        });
       }
     } catch (error) {
       console.error("Failed to refresh user info", error);
