@@ -26,7 +26,7 @@ export async function loginUser(email: string, password: string): Promise<LoginR
   return res.data;
 }
 
-export async function getUserInfo(): Promise<{ email: string, credits: number }> {
+export async function getUserInfo(): Promise<{ email: string, credits: number, active_plan_id?: string }> {
   const res = await api.get('/auth/me');
   return res.data;
 }

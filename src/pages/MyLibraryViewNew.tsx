@@ -70,7 +70,7 @@ export default function MyLibraryView() {
           Your bookshelf is empty
         </h3>
         <p className="text-slate-400 text-sm max-w-xs mx-auto">
-          Upload your first PDF on the dashboard to start listening.
+          Upload your first document on the dashboard to start listening.
         </p>
       </div>
     );

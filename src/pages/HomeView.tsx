@@ -9,7 +9,7 @@ export default function HomeView() {
   const { user, refreshUser } = useUser();
   const { ensureReady } = useBackend();
   const navigate = useNavigate();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +41,7 @@ export default function HomeView() {
     <div className="w-full">
       <div className="text-center mb-12 animate-fade-in-down">
         <h1 className="text-5xl font-black text-slate-900 mb-4 tracking-tight leading-none">
-          PDF to <span className="text-indigo-600 underline decoration-indigo-200 underline-offset-8">Voice</span>
+          Document to <span className="text-indigo-600 underline decoration-indigo-200 underline-offset-8">Voice</span>
         </h1>
         <p className="text-xl text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed">
           Professional document conversion powered by Narrio's neural speech engine.

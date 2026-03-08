@@ -44,8 +44,9 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
   };
 
   const validateAndSetFile = (f: File) => {
-    if (f.type !== 'application/pdf') {
-      alert('Please upload a PDF file.');
+    const ext = f.name.toLowerCase().split('.').pop();
+    if (!['pdf', 'epub', 'txt', 'docx'].includes(ext || '')) {
+      alert('Please upload a supported document (PDF, EPUB, TXT, DOCX).');
       return;
     }
     if (f.size > MAX_FILE_SIZE_BYTES) {
@@ -85,7 +86,7 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
               <UploadIcon className="w-12 h-12 text-indigo-600" />
             </div>
             <p className="mb-2 text-2xl font-black text-slate-800 tracking-tight">
-              {isDragging ? 'Drop it here!' : 'Choose your PDF'}
+              {isDragging ? 'Drop it here!' : 'Choose your document'}
             </p>
             <p className="text-sm text-slate-400 font-medium">
               or drop your document here (Max {MAX_FILE_SIZE_MB}MB)
@@ -97,7 +98,7 @@ export default function UploadView({ onStart, isLoading }: UploadViewProps) {
           <input
             type="file"
             className="hidden"
-            accept="application/pdf"
+            accept=".pdf,.epub,.txt,.docx"
             onChange={handleFileChange}
             ref={fileInputRef}
             disabled={isWaking || isLoading}
